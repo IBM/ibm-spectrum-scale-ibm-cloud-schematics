@@ -1,0 +1,255 @@
+{
+  "name": "hpcc-scale-test",
+  "type": [
+    "terraform_v1.0"
+  ],
+  "location": "us-east",
+  "resource_group": "Default",
+  "description": "",
+  "tags": ["hpcc", "scale"],
+  "template_repo": {
+    "url": "https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics"
+  },
+  "template_data": [
+    {
+      "folder": ".",
+      "type": "terraform_v1.0",
+      "env_values":[
+        { 
+          "TF_CLI_ARGS_apply": "-parallelism=250"
+        },
+        { 
+          "TF_CLI_ARGS_plan": "-parallelism=250"
+        },
+        {
+          "TF_CLI_ARGS_destroy": "-parallelism=100"
+        },
+        { 
+          "VAR1":"<val1>"
+        },
+        {
+          "VAR2":"<val2>"
+        } 
+      ],
+      "variablestore": [
+        {
+          "name": "vpc_region",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the IBM Cloud region where the resources need to be provisioned.(Examples: us-east, us-south, etc.) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
+        },
+        {
+          "name": "vpc_availability_zones",
+          "value": "Please fill here",
+          "type": "list(string)",
+          "secure": false,
+          "description": "IBM Cloud Availability Zone name(s) within the selected region where the Spectrum Scale cluster should be deployed. (Examples: [\"us-south-1\"]) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
+        },
+        {
+          "name": "resource_prefix",
+          "value": "spectrum-scale",
+          "type": "string",
+          "secure": false,
+          "description": "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Spectrum Scale cluster. It is not possible to create multiple resources with same name. Make sure that the prefix is unique."
+        },
+        {
+          "name": "resource_group",
+          "value": "default",
+          "type": "string",
+          "secure": false,
+          "description":"Resource group name from your IBM Cloud account where the VPC resources should be deployed. [Learn more](https://cloud.ibm.com/docs/account?topic=account-rgs)."
+        },
+        {
+          "name": "vpc_cidr_block",
+          "value": "[\"10.241.0.0/18\"]",
+          "type": "list(string)",
+          "secure": false,
+          "description": "IBM Cloud VPC address prefixes required for the VPC creation. Since our automation supports only single availability zone, so provide one cidr address prefix for vpc creation.[Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-configuring-address-prefixes)"
+        },
+        {
+          "name": "vpc_storage_cluster_private_subnets_cidr_blocks",
+          "value": "[\"10.241.1.0/24\"]",
+          "type": "list(string)",
+          "secure": false,
+          "description": "CIDR_block required for the creation of the storage cluster private subnet. Modify when the CIDR block has already been reserved/used for other applications within the VPC or conflicts with any on-premise CIDR blocks when using a hybrid environment. Provide only one cidr_block for the creation of storage subnet."
+        },
+        {
+          "name": "vpc_compute_cluster_private_subnets_cidr_blocks",
+          "value": "[\"10.241.0.0/24\"]",
+          "type": "list(string)",
+          "secure": false,
+          "description": "CIDR_block required for the creation of the compute cluster private subnet. Modify when the CIDR block has already been reserved/used for other applications within the VPC or conflicts with any on-premise CIDR blocks when using a hybrid environment. Provide only one cidr_block for the creation of compute subnet."
+        },
+        {
+          "name": "vpc_compute_cluster_dns_domain",
+          "value": "compscale.com",
+          "type": "string",
+          "secure": false,
+          "description": "IBM Cloud DNS domain name to be used for compute cluster."
+        },
+        {
+          "name": "vpc_storage_cluster_dns_domain",
+          "value": "strgscale.com",
+          "type": "string",
+          "secure": false,
+          "description": "IBM Cloud DNS domain name to be used for storage cluster."
+        },
+        {
+          "name": "remote_cidr_blocks",
+          "value": "Please fill here",
+          "type": "list(string)",
+          "secure": false,
+          "description": "Comma separated list of IP addresses that can access the Spectrum Scale cluster Bastion node via SSH. For the purpose of security provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"]) [Learn more](https://ipv4.icanhazip.com/)."
+        },
+        {
+          "name": "bastion_osimage_name",
+          "value": "ibm-ubuntu-20-04-3-minimal-amd64-2",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the image that will be used to provision the Bastion node for the Spectrum Scale cluster. Only Ubuntu stock images of any version available to the IBM Cloud account in the specific region are supported."
+        },
+        {
+          "name": "bootstrap_osimage_name",
+          "value": "hpcc-scale-bootstrap-v1",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. Our automation supports only the custom image that has the functionality of scale and any other custom images used without scale function will lead to the failure of cluster."
+        },
+        {
+          "name": "bastion_vsi_profile",
+          "value": "cx2-2x4",
+          "type": "string",
+          "secure": false,
+          "description": "The virtual server instance profile type name to be used to create the Bastion node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+        },
+        {
+          "name": "bastion_key_pair",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "bootstrap_vsi_profile",
+          "value": "bx2-8x32",
+          "type": "string",
+          "secure": false,
+          "description": "The virtual server instance profile type name to be used to create the Bootstrap node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+        },
+        {
+          "name": "ibm_customer_number",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": true,
+          "description": "IBM Customer number to be used for BYOL (bring your own license) entitlement check."
+        },
+        {
+          "name": "compute_cluster_filesystem_mountpoint",
+          "value": "/gpfs/fs1",
+          "type": "string",
+          "secure": false,
+          "description": "Spectrum Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. [Learn more](https://www.ibm.com/docs/en/spectrum-scale/5.1.3?topic=system-mounting-remote-gpfs-file)."
+        },
+        {
+          "name": "storage_cluster_filesystem_mountpoint",
+          "value": "/gpfs/fs1",
+          "type": "string",
+          "secure": false,
+          "description": "Spectrum Scale storage cluster (owning Cluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. [Learn more](https://www.ibm.com/docs/en/spectrum-scale/5.1.3?topic=system-mounting-remote-gpfs-file)."
+        },
+        {
+          "name": "filesystem_block_size",
+          "value": "4M",
+          "type": "string",
+          "secure": false,
+          "description": "File system [block size](https://www.ibm.com/docs/en/spectrum-scale/5.1.3?topic=considerations-block-size). Spectrum Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
+        },
+        {
+          "name": "compute_vsi_profile",
+          "value": "bx2-2x8",
+          "type": "string",
+          "secure": false,
+          "description": "The virtual server instance profile type name to be used to create the Compute cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+        },
+        {
+          "name": "compute_cluster_key_pair",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "compute_cluster_gui_username",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "GUI username to perform system management and monitoring tasks on the compute cluster. Note: Username should be at least 4 characters, any combination of lowercase and uppercase letters."
+        },
+        {
+          "name": "compute_cluster_gui_password",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "Password used for logging in to the compute cluster through the GUI. Note: Password should contain a minimum of 8 characters, and for a strong password it must be a combination of uppercase letters, lowercase lettesr, one number and a special character. Ensure that the password doesn't include the username."
+        },
+        {
+          "name": "storage_vsi_profile",
+          "value": "bx2d-32x128",
+          "type": "string",
+          "secure": false,
+          "description": "Specify the virtual server instance profile type name to be used to create the Storage nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+        },
+        {
+          "name": "total_compute_cluster_instances",
+          "value": "3",
+          "type": "number",
+          "secure": false,
+          "description": "Total number of Compute cluster instances required. A minimum of 3 nodes and a maximum of 64 nodes are supported."
+        },
+        {
+          "name": "total_storage_cluster_instances",
+          "value": "4",
+          "type": "number",
+          "secure": false,
+          "description": "Total number of Storage cluster instances required. A minimum of 3 nodes and a maximum of 18 nodes are supported."
+        },
+        {
+          "name": "compute_vsi_osimage_name",
+          "value": "hpcc-scale513-rhel79-v1",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the custom image that you would like to use to create the Compute cluster nodes for the Spectrum Scale cluster. Our automation supports both stock images of any version and also custom image of rhel 7.9 and 8.4 version which has the scale functionality."
+        },
+        {
+          "name": "storage_vsi_osimage_name",
+          "value": "hpcc-scale513-rhel84-v1",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the custom image that you would like to use to create the Storage cluster nodes for the Spectrum Scale cluster. Our automation supports both stock images of any version and custom image of rhel 8.4 which has the scale functionality."
+        },
+        {
+          "name": "storage_cluster_key_pair",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "storage_cluster_gui_username",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, any combination of lowercase and uppercase letters."
+        },
+        {
+          "name": "storage_cluster_gui_password",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": false,
+          "description": "Password used for logging in to the storage cluster through the GUI. Note: Password should contain a minimum of 8 characters, and for a strong password it must be a combination of uppercase letters, lowercase letters, one number and a special character. Ensure that the password doesn't include the username."
+        }
+      ]
+    }
+  ]
+}
