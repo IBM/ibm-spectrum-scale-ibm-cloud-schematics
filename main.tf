@@ -223,7 +223,7 @@ module "schematics_sg_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_tcp_rule"
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
-  remote_ip_addr    = tolist(["${chomp(data.http.fetch_myip.body)}"])
+  remote_ip_addr    = tolist(["${chomp(data.http.fetch_myip.response_body)}"])
 }
 
 module "bastion_https_tcp_rule" {

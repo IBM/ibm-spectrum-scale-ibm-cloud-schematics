@@ -19,7 +19,7 @@ resource "ibm_iam_trusted_profile_policy" "itself" {
   roles      = var.trusted_profile_roles
 
   resources {
-    service           = "Internet Services"
+    service           = "internet-svcs"
     resource_group_id = var.resource_group_id
   }
 }
