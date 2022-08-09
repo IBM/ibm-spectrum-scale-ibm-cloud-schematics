@@ -418,6 +418,7 @@ Do you want to continue teardown [y/N]: y
 
 | Name | Version |
 |------|---------|
+| <a name="requirement_http"></a> [http](#requirement_http) | 3.0.1 |
 | <a name="requirement_ibm"></a> [ibm](#requirement_ibm) | 1.41.0 |
 
 #### Inputs
