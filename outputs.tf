@@ -34,7 +34,7 @@ output "vpc_compute_cluster_dns_zone_id" {
 }
 
 output "vpc_custom_resolver_id" {
-  value       = module.custom_resolver_storage_subnet.custom_resolver_id
+  value       = module.custom_resolver_storage_subnet[*].custom_resolver_id
   description = "IBM Cloud DNS custom resolver ID."
 }
 
