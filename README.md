@@ -140,10 +140,10 @@ flag                value                    description
  -i                 4096                     Inode size in bytes
  -I                 32768                    Indirect block size in bytes
  -m                 2                        Default number of metadata replicas
- -M                 2                        Maximum number of metadata replicas
- -r                 1                        Default number of data replicas
- -R                 2                        Maximum number of data replicas
- -j                 cluster                  Block allocation type
+ -M                 3                        Maximum number of metadata replicas
+ -r                 2                        Default number of data replicas
+ -R                 3                        Maximum number of data replicas
+ -j                 scatter                  Block allocation type
  -D                 nfs4                     File locking semantics in effect
  -k                 all                      ACL semantics in effect
  -n                 32                       Estimated number of nodes that will mount file system
@@ -153,8 +153,8 @@ flag                value                    description
                     none                     Default quotas enabled
  --perfileset-quota no                       Per-fileset quota enforcement
  --filesetdf        no                       Fileset df enabled?
- -V                 27.00 (5.1.3.0)          File system version
- --create-time      Thu Apr 21 11:43:47 2022 File system creation time
+ -V                 28.00 (5.1.4.0)          File system version
+ --create-time      Fri Sep  2 11:31:17 2022 File system creation time
  -z                 no                       Is DMAPI enabled?
  -L                 33554432                 Logfile size
  -E                 yes                      Exact mtime mount option
@@ -162,7 +162,7 @@ flag                value                    description
  -K                 whenpossible             Strict replica allocation option
  --fastea           yes                      Fast external attributes enabled?
  --encryption       no                       Encryption enabled?
- --inode-limit      3433472                  Maximum number of inodes
+ --inode-limit      97676288                 Maximum number of inodes
  --log-replicas     0                        Number of log replicas
  --is4KAligned      yes                      is4KAligned?
  --rapid-repair     yes                      rapidRepair enabled?
@@ -172,7 +172,12 @@ flag                value                    description
  --file-audit-log   no                       File Audit Logging enabled?
  --maintenance-mode no                       Maintenance Mode enabled?
  --flush-on-close   no                       flush cache on file close enabled?
- -d                 nsd_10_241_1_7_vdb;nsd_10_241_1_7_vdc;nsd_10_241_1_8_vdb;nsd_10_241_1_8_vdc;nsd_10_241_1_9_vdb;nsd_10_241_1_9_vdc  Disks in file system
+ --auto-inode-limit no                       Increase maximum number of inodes per inode space automatically?
+ -d                 nsd_10_241_1_10_nvme0n1;nsd_10_241_1_10_nvme1n1;nsd_10_241_1_10_nvme2n1;nsd_10_241_1_10_nvme3n1;nsd_10_241_1_10_nvme4n1;nsd_10_241_1_10_nvme5n1;nsd_10_241_1_10_nvme6n1;
+ -d                 nsd_10_241_1_10_nvme7n1;nsd_10_241_1_7_nvme0n1;nsd_10_241_1_7_nvme1n1;nsd_10_241_1_7_nvme2n1;nsd_10_241_1_7_nvme3n1;nsd_10_241_1_7_nvme4n1;nsd_10_241_1_7_nvme5n1;
+ -d                 nsd_10_241_1_7_nvme6n1;nsd_10_241_1_7_nvme7n1;nsd_10_241_1_8_nvme0n1;nsd_10_241_1_8_nvme1n1;nsd_10_241_1_8_nvme2n1;nsd_10_241_1_8_nvme3n1;nsd_10_241_1_8_nvme4n1;
+ -d                 nsd_10_241_1_8_nvme5n1;nsd_10_241_1_8_nvme6n1;nsd_10_241_1_8_nvme7n1;nsd_10_241_1_9_nvme0n1;nsd_10_241_1_9_nvme1n1;nsd_10_241_1_9_nvme2n1;nsd_10_241_1_9_nvme3n1;
+ -d                 nsd_10_241_1_9_nvme4n1;nsd_10_241_1_9_nvme5n1;nsd_10_241_1_9_nvme6n1;nsd_10_241_1_9_nvme7n1  Disks in file system
  -A                 yes                      Automatic mount option
  -o                 none                     Additional mount options
  -T                 /gpfs/fs1                Default mount point
@@ -301,30 +306,41 @@ File system access:  (all rw)
 
 ```
 # mmlsconfig
+
 Configuration data for cluster spectrum-scale.storage:
 ------------------------------------------------------
 clusterName spectrum-scale.storage
-clusterId 9876153676758860235
+clusterId 14139934390600460176
 autoload yes
 profile storagesncparams
 dmapiFileHandleSize 32
-minReleaseLevel 5.1.3.0
+minReleaseLevel 5.1.4.0
 tscCmdAllowRemoteConnections no
 ccrEnabled yes
 cipherList AUTHONLY
 sdrNotifyAuthEnabled yes
-maxblocksize 16M
+numaMemoryInterleave yes
+ignorePrefetchLUNCount yes
+workerThreads 1024
 restripeOnDiskFailure yes
 unmountOnDiskFail meta
 readReplicaPolicy local
-workerThreads 128
-maxStatCache 0
-maxFilesToCache 64k
-ignorePrefetchLUNCount yes
-prefetchAggressivenessWrite 0
-prefetchAggressivenessRead 2
+nsdSmallThreadRatio 16
+nsdThreadsPerQueue 16
+nsdbufspace 70
+maxFilesToCache 128K
+maxStatCache 128K
+maxblocksize 16M
+maxMBpS 24000
+maxReceiverThreads 128
+maxTcpConnsPerNodeConn 2
+nsdMaxWorkerThreads 1024
+nsdMinWorkerThreads 1024
+idleSocketTimeout 0
+minMissedPingTimeout 60
+failureDetectionTime 60
 [storagenodegrp]
-pagepool 1G
+pagepool 32G
 [common]
 tscCmdPortRange 60000-61000
 adminMode central
@@ -336,6 +352,60 @@ File systems in cluster spectrum-scale.storage:
 ```
 
 Note: The above specified commands can be tried from both compute/storage nodes. The output would be the same, respective of nodes accessed from 
+
+### Replication for IBM Spectrum Scale Persistent
+1. IBM Spectrum Scale replication provides high availability at the storage level by having two consistent replicas of the file system; each available for recovery when the other one fails. 
+2. The two replicas are kept in-sync by using logical replication-based mirroring that does not require specific support from the underlying disk subsystem.
+3. The data and metadata replication features of GPFS are used to maintain a secondary copy of each file system block, relying on the concept of disk failure groups to control the physical placement of the individual copies.
+
+### Steps to validate Replication from Compute and Storage Nodes
+
+* The command below shows the default value of data replica and metadata replicas
+
+```
+# mmlsfs all -r
+
+File system attributes for spectrum-scale.storage:/dev/fs1:
+===========================================================
+flag        value          description
+------------------- ------------------------ -----------------------------------
+ -r         2            Default number of data replicas
+ 
+# mmlsfs all -m
+File system attributes for /dev/fs1:
+====================================
+flag                value                    description
+------------------- ------------------------ -----------------------------------
+ -m                 2                        Default number of metadata replicas 
+```
+* The command below shows the maximum value of data replica and metadata replica that is supported
+
+```
+# mmlsfs all -R
+
+File system attributes for spectrum-scale.storage:/dev/fs1:
+===========================================================
+flag        value          description
+------------------- ------------------------ -----------------------------------
+ -R         3            Maximum number of data replicas
+ 
+# mmlsfs all -M
+File system attributes for /dev/fs1:
+====================================
+flag                value                    description
+------------------- ------------------------ -----------------------------------
+ -M                 3                        Maximum number of metadata replicas 
+```
+* The command below shows the complete block size of the attached disk to cluster using bare metal nodes
+
+```
+# mmlsfs fs1 -B
+
+flag                value                    description
+------------------- ------------------------ -----------------------------------
+ -B                 4194304                  Block size
+
+```
 
 ### Steps to Validate Cluster Information Setup from Bootstrap  
 
@@ -419,45 +489,48 @@ Do you want to continue teardown [y/N]: y
 | Name | Version |
 |------|---------|
 | <a name="requirement_http"></a> [http](#requirement_http) | 3.0.1 |
-| <a name="requirement_ibm"></a> [ibm](#requirement_ibm) | 1.41.0 |
+| <a name="requirement_ibm"></a> [ibm](#requirement_ibm) | 1.44.2 |
 
 #### Inputs
 
 | Name | Description | Type |
 |------|-------------|------|
-| <a name="input_bastion_key_pair"></a> [bastion_key_pair](#input_bastion_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned and our automation supports only one ssh key that can be attached to bastion and bootstrap node.If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
-| <a name="input_compute_cluster_gui_password"></a> [compute_cluster_gui_password](#input_compute_cluster_gui_password) | Password used for logging in to the compute cluster through the GUI. Note: Password should contain a minimum of 8 characters, and for a strong password it must be a combination of uppercase letters, lowercase letters, one number and a special character. Ensure that the password doesn't include the username. | `string` |
-| <a name="input_compute_cluster_gui_username"></a> [compute_cluster_gui_username](#input_compute_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the compute cluster. Note: Username should be at least 4 characters, any combination of lowercase and uppercase letters. | `string` |
-| <a name="input_compute_cluster_key_pair"></a> [compute_cluster_key_pair](#input_compute_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned and our automation supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
-| <a name="input_ibm_customer_number"></a> [ibm_customer_number](#input_ibm_customer_number) | IBM Customer number to be used for BYOL (bring your own license) entitlement check. | `string` |
-| <a name="input_remote_cidr_blocks"></a> [remote_cidr_blocks](#input_remote_cidr_blocks) | Comma separated list of IP addresses that can access the Spectrum Scale cluster Bastion node via SSH. For the purpose of security provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : ["169.45.117.34"]) [Learn more](https://ipv4.icanhazip.com/). | `list(string)` |
-| <a name="input_storage_cluster_gui_password"></a> [storage_cluster_gui_password](#input_storage_cluster_gui_password) | Password used for logging in to the storage cluster through the GUI. Note: Password should contain a minimum of 8 characters, and for a strong password it must be a combination of uppercase letters, lowercase letters, one number and a special character. Ensure that the password doesn't include the username. | `string` |
-| <a name="input_storage_cluster_gui_username"></a> [storage_cluster_gui_username](#input_storage_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, any combination of lowercase and uppercase letters. | `string` |
-| <a name="input_storage_cluster_key_pair"></a> [storage_cluster_key_pair](#input_storage_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned and our automation supports only one ssh key that can be attached to storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
-| <a name="input_vpc_availability_zones"></a> [vpc_availability_zones](#input_vpc_availability_zones) | IBM Cloud Availability Zone name(s) within the selected region where the Spectrum Scale cluster should be deployed. (Examples: ["us-south-1"]) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations). | `list(string)` |
+| <a name="input_bastion_key_pair"></a> [bastion_key_pair](#input_bastion_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Make Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
+| <a name="input_compute_cluster_gui_password"></a> [compute_cluster_gui_password](#input_compute_cluster_gui_password) | Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username. | `string` |
+| <a name="input_compute_cluster_gui_username"></a> [compute_cluster_gui_username](#input_compute_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the compute cluster. The Username should be at least 4 characters, (any combination of lowercase and uppercase letters). | `string` |
+| <a name="input_compute_cluster_key_pair"></a> [compute_cluster_key_pair](#input_compute_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
+| <a name="input_ibm_customer_number"></a> [ibm_customer_number](#input_ibm_customer_number) | The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn). | `string` |
+| <a name="input_remote_cidr_blocks"></a> [remote_cidr_blocks](#input_remote_cidr_blocks) | Comma-separated list of IP addresses that can be access the Spectrum Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : ["169.45.117.34"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/). | `list(string)` |
+| <a name="input_storage_cluster_gui_password"></a> [storage_cluster_gui_password](#input_storage_cluster_gui_password) | Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username. | `string` |
+| <a name="input_storage_cluster_gui_username"></a> [storage_cluster_gui_username](#input_storage_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters). | `string` |
+| <a name="input_storage_cluster_key_pair"></a> [storage_cluster_key_pair](#input_storage_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one SSH key that can be attached to the storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
+| <a name="input_vpc_availability_zones"></a> [vpc_availability_zones](#input_vpc_availability_zones) | IBM Cloud availability zone names within the selected region where the Spectrum Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations). | `list(string)` |
 | <a name="input_vpc_region"></a> [vpc_region](#input_vpc_region) | Name of the IBM Cloud region where the resources need to be provisioned.(Examples: us-east, us-south, etc.) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations). | `string` |
 | <a name="input_TF_PARALLELISM"></a> [TF_PARALLELISM](#input_TF_PARALLELISM) | Limit the number of concurrent operation. | `string` |
 | <a name="input_TF_VERSION"></a> [TF_VERSION](#input_TF_VERSION) | The version of the Terraform engine that's used in the Schematics workspace. | `string` |
-| <a name="input_bastion_osimage_name"></a> [bastion_osimage_name](#input_bastion_osimage_name) | Name of the image that will be used to provision the Bastion node for the Spectrum Scale cluster. Only Ubuntu stock images of any version available to the IBM Cloud account in the specific region are supported. | `string` |
-| <a name="input_bastion_vsi_profile"></a> [bastion_vsi_profile](#input_bastion_vsi_profile) | The virtual server instance profile type name to be used to create the Bastion node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles) | `string` |
-| <a name="input_bootstrap_osimage_name"></a> [bootstrap_osimage_name](#input_bootstrap_osimage_name) | Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. Our automation supports only the custom image that has the functionality of scale and any other custom images used without scale function will lead to the failure of cluster. | `string` |
+| <a name="input_bastion_osimage_name"></a> [bastion_osimage_name](#input_bastion_osimage_name) | Name of the image that will be used to provision the Bastion node for the Spectrum Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported. | `string` |
+| <a name="input_bastion_vsi_profile"></a> [bastion_vsi_profile](#input_bastion_vsi_profile) | The virtual server instance profile type name to be used to create the Bastion node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles). | `string` |
+| <a name="input_bootstrap_osimage_name"></a> [bootstrap_osimage_name](#input_bootstrap_osimage_name) | Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided. | `string` |
 | <a name="input_bootstrap_vsi_profile"></a> [bootstrap_vsi_profile](#input_bootstrap_vsi_profile) | The virtual server instance profile type name to be used to create the Bootstrap node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui). | `string` |
-| <a name="input_compute_cluster_filesystem_mountpoint"></a> [compute_cluster_filesystem_mountpoint](#input_compute_cluster_filesystem_mountpoint) | Spectrum Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. [Learn more](https://www.ibm.com/docs/en/spectrum-scale/5.1.3?topic=system-mounting-remote-gpfs-file). | `string` |
-| <a name="input_compute_vsi_osimage_name"></a> [compute_vsi_osimage_name](#input_compute_vsi_osimage_name) | Name of the custom image that you would like to use to create the Compute cluster nodes for the Spectrum Scale cluster. Our automation supports both stock images of any version and custom image of rhel 7.9 and 8.4 version which has the scale functionality. | `string` |
-| <a name="input_compute_vsi_profile"></a> [compute_vsi_profile](#input_compute_vsi_profile) | The virtual server instance profile type name to be used to create the Compute cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui). | `string` |
-| <a name="input_filesystem_block_size"></a> [filesystem_block_size](#input_filesystem_block_size) | File system [block size](https://www.ibm.com/docs/en/spectrum-scale/5.1.3?topic=considerations-block-size). Spectrum Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M. | `string` |
+| <a name="input_compute_cluster_filesystem_mountpoint"></a> [compute_cluster_filesystem_mountpoint](#input_compute_cluster_filesystem_mountpoint) | Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file). | `string` |
+| <a name="input_compute_vsi_osimage_name"></a> [compute_vsi_osimage_name](#input_compute_vsi_osimage_name) | Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image. | `string` |
+| <a name="input_compute_vsi_profile"></a> [compute_vsi_profile](#input_compute_vsi_profile) | The virtual server instance profile type name to be used to create the compute cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui). | `string` |
+| <a name="input_filesystem_block_size"></a> [filesystem_block_size](#input_filesystem_block_size) | File system [block size](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=considerations-block-size). Spectrum Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M. | `string` |
 | <a name="input_resource_group"></a> [resource_group](#input_resource_group) | Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui). | `string` |
-| <a name="input_resource_prefix"></a> [resource_prefix](#input_resource_prefix) | Prefix that is used to name the IBM Cloud resources that are provisioned to build the Spectrum Scale cluster. It is not possible to create multiple resources with same name. Make sure that the prefix is unique. | `string` |
-| <a name="input_storage_cluster_filesystem_mountpoint"></a> [storage_cluster_filesystem_mountpoint](#input_storage_cluster_filesystem_mountpoint) | Spectrum Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. [Learn more](https://www.ibm.com/docs/en/spectrum-scale/5.1.3?topic=system-mounting-remote-gpfs-file). | `string` |
-| <a name="input_storage_vsi_osimage_name"></a> [storage_vsi_osimage_name](#input_storage_vsi_osimage_name) | Name of the custom image that you would like to use to create the Storage cluster nodes for the Spectrum Scale cluster. Our automation supports both stock images of any version and custom image of rhel 8.4 which has the scale functionality. | `string` |
+| <a name="input_resource_prefix"></a> [resource_prefix](#input_resource_prefix) | Prefix that is used to name the IBM Cloud resources that are provisioned to build the Spectrum Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64. | `string` |
+| <a name="input_storage_bare_metal_osimage_name"></a> [storage_bare_metal_osimage_name](#input_storage_bare_metal_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.4 stock image. | `string` |
+| <a name="input_storage_bare_metal_server_profile"></a> [storage_bare_metal_server_profile](#input_storage_bare_metal_server_profile) | Specify the bare metal server profile type name to be used to create the bare metal storage nodes. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui). | `string` |
+| <a name="input_storage_cluster_filesystem_mountpoint"></a> [storage_cluster_filesystem_mountpoint](#input_storage_cluster_filesystem_mountpoint) | Spectrum Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file). | `string` |
+| <a name="input_storage_type"></a> [storage_type](#input_storage_type) | Select the Spectrum Scale file system deployment method. Note:The Spectrum Scale scratch type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for evaluation and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use. | `string` |
+| <a name="input_storage_vsi_osimage_name"></a> [storage_vsi_osimage_name](#input_storage_vsi_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image. | `string` |
 | <a name="input_storage_vsi_profile"></a> [storage_vsi_profile](#input_storage_vsi_profile) | Specify the virtual server instance profile type name to be used to create the Storage nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles). | `string` |
-| <a name="input_total_compute_cluster_instances"></a> [total_compute_cluster_instances](#input_total_compute_cluster_instances) | Total number of Compute cluster instances required. A minimum of 3 nodes and a maximum of 64 nodes are supported. | `number` |
-| <a name="input_total_storage_cluster_instances"></a> [total_storage_cluster_instances](#input_total_storage_cluster_instances) | Total number of Storage cluster instances required. A minimum of 3 nodes and a maximum of 18 nodes are supported. | `number` |
-| <a name="input_vpc_cidr_block"></a> [vpc_cidr_block](#input_vpc_cidr_block) | IBM Cloud VPC address prefixes required for the VPC creation. Since our automation supports only single availability zone, so provide one cidr address prefix for vpc creation. [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-configuring-address-prefixes). | `list(string)` |
-| <a name="input_vpc_compute_cluster_dns_domain"></a> [vpc_compute_cluster_dns_domain](#input_vpc_compute_cluster_dns_domain) | IBM Cloud DNS domain name to be used for compute cluster. | `string` |
-| <a name="input_vpc_compute_cluster_private_subnets_cidr_blocks"></a> [vpc_compute_cluster_private_subnets_cidr_blocks](#input_vpc_compute_cluster_private_subnets_cidr_blocks) | CIDR_block required for the creation of the compute cluster private subnet. Modify when the CIDR block has already been reserved/used for other applications within the VPC or conflicts with any on-premise CIDR blocks when using a hybrid environment. Provide only one cidr_block for the creation of compute subnet. | `list(string)` |
-| <a name="input_vpc_storage_cluster_dns_domain"></a> [vpc_storage_cluster_dns_domain](#input_vpc_storage_cluster_dns_domain) | IBM Cloud DNS domain name to be used for storage cluster. | `string` |
-| <a name="input_vpc_storage_cluster_private_subnets_cidr_blocks"></a> [vpc_storage_cluster_private_subnets_cidr_blocks](#input_vpc_storage_cluster_private_subnets_cidr_blocks) | CIDR_block required for the creation of the storage cluster private subnet. Modify when the CIDR block has already been reserved/used for other applications within the VPC or conflicts with any on-premise CIDR blocks when using a hybrid environment. Provide only one cidr_block for the creation of storage subnet. | `list(string)` |
+| <a name="input_total_compute_cluster_instances"></a> [total_compute_cluster_instances](#input_total_compute_cluster_instances) | Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. | `number` |
+| <a name="input_total_storage_cluster_instances"></a> [total_storage_cluster_instances](#input_total_storage_cluster_instances) | Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent. | `number` |
+| <a name="input_vpc_cidr_block"></a> [vpc_cidr_block](#input_vpc_cidr_block) | IBM Cloud VPC address prefixes that are needed for VPC creation. Since the solution supports only a single availability zone, provide one CIDR address prefix for VPC creation. For more information, see [Bring your own subnet](https://cloud.ibm.com/docs/vpc?topic=vpc-configuring-address-prefixes). | `list(string)` |
+| <a name="input_vpc_compute_cluster_dns_domain"></a> [vpc_compute_cluster_dns_domain](#input_vpc_compute_cluster_dns_domain) | IBM Cloud DNS Services domain name to be used for the compute cluster. | `string` |
+| <a name="input_vpc_compute_cluster_private_subnets_cidr_blocks"></a> [vpc_compute_cluster_private_subnets_cidr_blocks](#input_vpc_compute_cluster_private_subnets_cidr_blocks) | The CIDR block that's required for the creation of the compute cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with anyon-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the compute subnet. | `list(string)` |
+| <a name="input_vpc_storage_cluster_dns_domain"></a> [vpc_storage_cluster_dns_domain](#input_vpc_storage_cluster_dns_domain) | IBM Cloud DNS Services domain name to be used for the storage cluster. | `string` |
+| <a name="input_vpc_storage_cluster_private_subnets_cidr_blocks"></a> [vpc_storage_cluster_private_subnets_cidr_blocks](#input_vpc_storage_cluster_private_subnets_cidr_blocks) | The CIDR block that's required for the creation of the storage cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with any on-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the storage subnet. | `list(string)` |
 
 #### Outputs
 
