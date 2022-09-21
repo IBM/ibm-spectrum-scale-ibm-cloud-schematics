@@ -214,7 +214,7 @@ module "custom_resolver_storage_subnet" { # While creating the custom resolver, 
   description            = "Private DNS custom resolver for Spectrum Scale VPC DNS communication."
   storage_subnet_crn = module.storage_private_subnet.subnet_crn[0]
   #compute_subnet_crn = module.compute_private_subnet.subnet_crn[0]
-  compute_subnet_crn = local.vpc_create_separate_subnets == true ? module.compute_private_subnet.subnet_crn[0] : module.storage_private_subnet.subnet_crn[0] # This logic has been created after the discussion with Muthu, as we want this when we set the create_separate_subnet is set as false in future
+  compute_subnet_crn = local.vpc_create_separate_subnets == true ? module.compute_private_subnet.subnet_crn[0] : module.storage_private_subnet.subnet_crn[0]
 }
 
 data "http" "fetch_myip"{
