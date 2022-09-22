@@ -66,6 +66,19 @@ locals {
   storage_image_id = local.storage_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.storage_image[0].id
   storage_osimage_name = local.storage_image_mapping_entry_found ? var.storage_vsi_osimage_name : data.ibm_is_image.storage_image[0].name
 
+  // validate the total storage count for the total_storage_cluster_instance variable, as this validation is not possible to be done on Variables decided to validate this during the apply plan process. For both persistent and scratch type the validation happens at main.tf directly
+  validate_total_storage_cluster_instances_cnd = var.storage_type != "scratch" ? var.total_storage_cluster_instances >= 3 && var.total_storage_cluster_instances <= 10 : var.total_storage_cluster_instances >= 3 && var.total_storage_cluster_instances <= 18
+  total_storage_cluster_instances_msg = "Specified input \"total_storage_cluster_instances\" must be in between the range of 3 and 10 while storage type is persistent and for scratch should be in range of 3 and 18.Please provide the appropriate range of value."
+  validate_total_storage_cluster_instances_chk = regex("^${local.total_storage_cluster_instances_msg}$", ((local.validate_total_storage_cluster_instances_cnd ? local.total_storage_cluster_instances_msg : "") ))
+
+  // validate the regions that are supported for storage_type as persistent and scratch. This validation is done because persistent version supports only three regions
+  validate_region = contains(["us-south","eu-de","eu-gb","jp-osa","br-sao","au-syd","jp-tok","ca-tor","us-east"], var.vpc_region )
+  region_msg = "The solution supports only following regions us-south, eu-de, eu-gb, jp-osa, br-sao, au-syd, jp-tok, ca-tor, and us-east. Provide valid region name."
+  validate_region_chk = regex("^${local.region_msg}$", ((local.validate_region ? local.region_msg : "") ))
+
+  validate_zone = var.storage_type == "persistent" ? contains(["us-south-1","us-south-3","eu-de-1","eu-de-2"], join(",",var.vpc_availability_zones)) : local.validate_region
+  zone_msg = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, and eu-de-2. To deploy persistent storage provide any one of the supported availability zones."
+  validate_persistent_region_chk = regex("^${local.zone_msg}$", ((local.validate_zone ? local.zone_msg : "") ))
 }
 
 data "ibm_is_image" "compute_image" {
@@ -76,6 +89,10 @@ data "ibm_is_image" "compute_image" {
 data "ibm_is_image" "storage_image" {
   name = var.storage_vsi_osimage_name
   count = local.storage_image_mapping_entry_found ? 0:1
+}
+
+data "ibm_is_image" "bare_metal_image" {
+  name = var.storage_bare_metal_osimage_name
 }
 
 data "ibm_is_ssh_key" "bastion_ssh_key" {
@@ -196,7 +213,8 @@ module "custom_resolver_storage_subnet" { # While creating the custom resolver, 
   instance_guid          = module.dns_service.resource_guid[0]
   description            = "Private DNS custom resolver for Spectrum Scale VPC DNS communication."
   storage_subnet_crn = module.storage_private_subnet.subnet_crn[0]
-  compute_subnet_crn = module.compute_private_subnet.subnet_crn[0]
+  #compute_subnet_crn = module.compute_private_subnet.subnet_crn[0]
+  compute_subnet_crn = local.vpc_create_separate_subnets == true ? module.compute_private_subnet.subnet_crn[0] : module.storage_private_subnet.subnet_crn[0]
 }
 
 data "http" "fetch_myip"{
@@ -383,7 +401,11 @@ resource "local_file" "prepare_scale_vsi_input" {
     "using_direct_connection": true,
     "scale_cluster_resource_tags": ${local.scale_cluster_resource_tags},
     "compute_vsi_osimage_id": "${local.compute_image_id}",
-    "storage_vsi_osimage_id": "${local.storage_image_id}"
+    "storage_vsi_osimage_id": "${local.storage_image_id}",
+    "storage_bare_metal_osimage_id" : "${data.ibm_is_image.bare_metal_image.id}",
+    "storage_bare_metal_server_profile" : "${var.storage_bare_metal_server_profile}",
+    "storage_bare_metal_osimage_name" : "${var.storage_bare_metal_osimage_name}",
+    "storage_type" : "${var.storage_type}"
 }
 EOT
   filename          = local.schematics_inputs_path
@@ -424,7 +446,7 @@ module "bootstrap_trusted_profile_dns_policy" {
 module "bootstrap_trusted_profile_vpc_policy" {
   source                = "./resources/ibmcloud/security/iam/trusted_profile_vpc_policy"
   trusted_profile_id    = module.bootstrap_trusted_profile.trusted_profile_id
-  trusted_profile_roles = ["Administrator"]
+  trusted_profile_roles = ["Administrator","Bare Metal Advanced Network Operator","Bare Metal Console Admin"]
   resource_group_id     = data.ibm_resource_group.itself.id
 }
 
