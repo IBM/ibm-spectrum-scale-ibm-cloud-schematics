@@ -10,101 +10,12 @@
     7.  Trusted Profile for authentication purpose
 */
 
-data "ibm_resource_group" "itself" {
-  name = var.resource_group
-}
-
 locals {
-  tags = ["HPCC", var.resource_prefix]
-  vpc_create_activity_tracker = "false"
+  tags                           = ["HPCC", var.resource_prefix]
+  vpc_create_activity_tracker    = "false"
   vpc_activity_tracker_plan_type = "lite"
-  vpc_create_separate_subnets = true
-  using_rest_api_remote_mount = true
-}
-
-locals {
-  validate_storage_gui_password_cnd = (replace(lower(var.storage_cluster_gui_password), lower(var.storage_cluster_gui_username), "" ) == lower(var.storage_cluster_gui_password))
-  gui_password_msg = "Password Should not contain username"
-  validate_storage_gui_password_chk = regex("^${local.gui_password_msg}$", ( local.validate_storage_gui_password_cnd ? local.gui_password_msg : "") )
-
-  // validate compute gui password
-  validate_compute_gui_password_cnd = (replace(lower(var.compute_cluster_gui_password), lower(var.compute_cluster_gui_username),"") == lower(var.compute_cluster_gui_password))
-  validate_compute_gui_password_chk = regex("^${local.gui_password_msg}$", ( local.validate_compute_gui_password_cnd ? local.gui_password_msg : "") )
-
-
-   //validate scale storage gui user name
-  validate_scale_storage_gui_username_cnd = (length(var.storage_cluster_gui_username) >= 4 && length(var.storage_cluster_gui_username) <= 32 && trimspace(var.storage_cluster_gui_username) != "")
-  storage_gui_username_msg = "Specified input for \"storage_cluster_gui_username\" is not valid.username should be greater or equal to 4 letters."
-  validate_storage_gui_username_chk = regex("^${local.storage_gui_username_msg}", (local.validate_scale_storage_gui_username_cnd? local.storage_gui_username_msg: ""))
-
-  validate_compute_gui_username_cnd = (length(var.compute_cluster_gui_username) >= 4 && length(var.compute_cluster_gui_username) <= 32 && trimspace(var.compute_cluster_gui_username) != "")
-  compute_gui_username_msg = "Specified input for \"compute_cluster_gui_username\" is not valid. username should be greater or equal to 4 letters."
-  validate_compute_gui_username_chk = regex("^${local.compute_gui_username_msg}", (local.validate_compute_gui_username_cnd? local.compute_gui_username_msg: ""))
-
-
-  //validate Bastion os image.
-  bastion_os = split("-", data.ibm_is_image.bastion_image.os)[0]
-  validate_bastion_os = local.bastion_os == "ubuntu"
-  validate_bastion_os_msg = "Error: Invalid custom image name. Our automation currently supports only ubuntu stock images of any version available on that region."
-  validate_bastion_os_chk = regex(
-      "^${local.validate_bastion_os_msg}$",
-      ( local.validate_bastion_os
-        ? local.validate_bastion_os_msg
-        : "" ) )
-
-  // Check whether an entry is found in the mapping file for the given bootstrap node image
-  bootstrap_image_mapping_entry_found = contains(keys(local.bootstrap_image_region_map), var.bootstrap_osimage_name)
-  bootstrap_image_id = local.bootstrap_image_mapping_entry_found ? lookup(lookup(local.bootstrap_image_region_map, var.bootstrap_osimage_name), var.vpc_region) : "Image not found with the given name"
-
-  // Check whether an entry is found in the mapping file for the given compute node image
-  compute_image_mapping_entry_found = contains(keys(local.compute_image_region_map), var.compute_vsi_osimage_name)
-  compute_image_id = local.compute_image_mapping_entry_found ? lookup(lookup(local.compute_image_region_map, var.compute_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.compute_image[0].id
-  compute_osimage_name = local.compute_image_mapping_entry_found ? var.compute_vsi_osimage_name : data.ibm_is_image.compute_image[0].name
-
-  // Check whether an entry is found in the mapping file for the given storage node image
-  storage_image_mapping_entry_found = contains(keys(local.storage_image_region_map), var.storage_vsi_osimage_name)
-  storage_image_id = local.storage_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.storage_image[0].id
-  storage_osimage_name = local.storage_image_mapping_entry_found ? var.storage_vsi_osimage_name : data.ibm_is_image.storage_image[0].name
-
-  // validate the total storage count for the total_storage_cluster_instance variable, as this validation is not possible to be done on Variables decided to validate this during the apply plan process. For both persistent and scratch type the validation happens at main.tf directly
-  validate_total_storage_cluster_instances_cnd = var.storage_type != "scratch" ? var.total_storage_cluster_instances >= 3 && var.total_storage_cluster_instances <= 10 : var.total_storage_cluster_instances >= 3 && var.total_storage_cluster_instances <= 18
-  total_storage_cluster_instances_msg = "Specified input \"total_storage_cluster_instances\" must be in between the range of 3 and 10 while storage type is persistent and for scratch should be in range of 3 and 18.Please provide the appropriate range of value."
-  validate_total_storage_cluster_instances_chk = regex("^${local.total_storage_cluster_instances_msg}$", ((local.validate_total_storage_cluster_instances_cnd ? local.total_storage_cluster_instances_msg : "") ))
-
-  // validate the regions that are supported for storage_type as persistent and scratch. This validation is done because persistent version supports only three regions
-  validate_region = contains(["us-south","eu-de","eu-gb","jp-osa","br-sao","au-syd","jp-tok","ca-tor","us-east"], var.vpc_region )
-  region_msg = "The solution supports only following regions us-south, eu-de, eu-gb, jp-osa, br-sao, au-syd, jp-tok, ca-tor, and us-east. Provide valid region name."
-  validate_region_chk = regex("^${local.region_msg}$", ((local.validate_region ? local.region_msg : "") ))
-
-  validate_zone = var.storage_type == "persistent" ? contains(["us-south-1","us-south-3","eu-de-1","eu-de-2"], join(",",var.vpc_availability_zones)) : local.validate_region
-  zone_msg = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, and eu-de-2. To deploy persistent storage provide any one of the supported availability zones."
-  validate_persistent_region_chk = regex("^${local.zone_msg}$", ((local.validate_zone ? local.zone_msg : "") ))
-}
-
-data "ibm_is_image" "compute_image" {
-  name = var.compute_vsi_osimage_name
-  count = local.compute_image_mapping_entry_found ? 0:1
-}
-
-data "ibm_is_image" "storage_image" {
-  name = var.storage_vsi_osimage_name
-  count = local.storage_image_mapping_entry_found ? 0:1
-}
-
-data "ibm_is_image" "bare_metal_image" {
-  name = var.storage_bare_metal_osimage_name
-}
-
-data "ibm_is_ssh_key" "bastion_ssh_key" {
-  name = var.bastion_key_pair
-}
-
-data "ibm_is_ssh_key" "compute_ssh_key" { # This block is trying to fetch the key_pair details for compute node, which is dependent on the code present on public repo
-  name = var.compute_cluster_key_pair
-}
-
-data "ibm_is_ssh_key" "storage_ssh_key" { # This block is trying to fetch the key_pair details for compute node, which is dependent on the code present on public repo
-  name = var.storage_cluster_key_pair
+  vpc_create_separate_subnets    = true
+  using_rest_api_remote_mount    = true
 }
 
 module "vpc" {
@@ -212,9 +123,9 @@ module "custom_resolver_storage_subnet" { # While creating the custom resolver, 
   customer_resolver_name = format("%s-vpc-resolver", var.resource_prefix)
   instance_guid          = module.dns_service.resource_guid[0]
   description            = "Private DNS custom resolver for Spectrum Scale VPC DNS communication."
-  storage_subnet_crn = module.storage_private_subnet.subnet_crn[0]
-  #compute_subnet_crn = module.compute_private_subnet.subnet_crn[0]
-  compute_subnet_crn = local.vpc_create_separate_subnets == true ? module.compute_private_subnet.subnet_crn[0] : module.storage_private_subnet.subnet_crn[0]
+  storage_subnet_crn     = module.storage_private_subnet.subnet_crn[0]
+  #compute_subnet_crn    = module.compute_private_subnet.subnet_crn[0]
+  compute_subnet_crn     = local.vpc_create_separate_subnets == true ? module.compute_private_subnet.subnet_crn[0] : module.storage_private_subnet.subnet_crn[0]
 }
 
 data "http" "fetch_myip"{
@@ -241,7 +152,7 @@ module "schematics_sg_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_tcp_rule"
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
-  remote_ip_addr    = tolist(["${chomp(data.http.fetch_myip.response_body)}"])
+  remote_ip_addr    = tolist([chomp(data.http.fetch_myip.response_body)])
 }
 
 module "bastion_https_tcp_rule" {
@@ -266,11 +177,6 @@ module "bastion_sg_outbound_rule" {
   remote_ip_addr     = "0.0.0.0/0"
 }
 
-
-data "ibm_is_image" "bastion_image" {
-  name = var.bastion_osimage_name
-}
-
 module "bastion_proxy_ssh_keys" {
   source  = "./resources/common/generate_keys"
   turn_on = true
@@ -288,7 +194,7 @@ module "bastion_vsi" {
   vsi_image_id        = data.ibm_is_image.bastion_image.id
   vsi_user_public_key = [data.ibm_is_ssh_key.bastion_ssh_key.id]
   vsi_meta_public_key = module.bastion_proxy_ssh_keys.public_key_content
-  tags              = local.tags
+  tags                = local.tags
 }
 
 module "bastion_attach_fip" {
@@ -330,34 +236,29 @@ module "bootstrap_sg_outbound_rule" {
   remote_ip_addr     = "0.0.0.0/0"
 }
 
-data "ibm_is_image" "bootstrap_image" {
-  count = local.bootstrap_image_mapping_entry_found ? 0:1
-  name = var.bootstrap_osimage_name
-}
-
 module "bootstrap_ssh_keys" {
   source  = "./resources/common/generate_keys"
   turn_on = true
 }
 
 locals {
-  turn_on_init            = fileexists("/tmp/.schematics/success") ? false : true
-  bootstrap_path          = "/opt/IBM"
-  remote_gpfs_rpms_path   = format("%s/gpfs_cloud_rpms", local.bootstrap_path)
-  remote_ansible_path     = format("%s/ibm-spectrumscale-cloud-deploy", local.bootstrap_path)
-  remote_terraform_path   = format("%s/ibm-spectrum-scale-cloud-install/ibmcloud_scale_templates/sub_modules/instance_template", local.remote_ansible_path)
-  schematics_inputs_path  = "/tmp/.schematics/scale_terraform.auto.tfvars.json"
-  scale_cred_path         = "/tmp/.schematics/scale_credentials.json"
-  remote_inputs_path      = format("%s/terraform.tfvars.json", "/tmp")
-  remote_scale_cred_path  = format("%s/scale_credentials.json", "/tmp")
-  zones                   = jsonencode(var.vpc_availability_zones)
-  compute_private_subnets = jsonencode(module.compute_private_subnet.subnet_id)
-  storage_private_subnets = jsonencode(module.storage_private_subnet.subnet_id)
+  turn_on_init                = fileexists("/tmp/.schematics/success") ? false : true
+  bootstrap_path              = "/opt/IBM"
+  remote_gpfs_rpms_path       = format("%s/gpfs_cloud_rpms", local.bootstrap_path)
+  remote_ansible_path         = format("%s/ibm-spectrumscale-cloud-deploy", local.bootstrap_path)
+  remote_terraform_path       = format("%s/ibm-spectrum-scale-cloud-install/ibmcloud_scale_templates/sub_modules/instance_template", local.remote_ansible_path)
+  schematics_inputs_path      = "/tmp/.schematics/scale_terraform.auto.tfvars.json"
+  scale_cred_path             = "/tmp/.schematics/scale_credentials.json"
+  remote_inputs_path          = format("%s/terraform.tfvars.json", "/tmp")
+  remote_scale_cred_path      = format("%s/scale_credentials.json", "/tmp")
+  zones                       = jsonencode(var.vpc_availability_zones)
+  compute_private_subnets     = jsonencode(module.compute_private_subnet.subnet_id)
+  storage_private_subnets     = jsonencode(module.storage_private_subnet.subnet_id)
   scale_cluster_resource_tags = jsonencode(local.tags)
 }
 
-resource "local_file" "prepare_scale_vsi_input" {
-  sensitive_content = <<EOT
+resource "local_sensitive_file" "prepare_scale_vsi_input" {
+  content = <<EOT
 {
     "resource_group_id": "${data.ibm_resource_group.itself.id}",
     "resource_prefix": "${var.resource_prefix}",
@@ -411,15 +312,15 @@ EOT
   filename          = local.schematics_inputs_path
 }
 
-resource "local_file" "prepare_scale_cred_input" {
-  sensitive_content = <<EOT
+resource "local_sensitive_file" "prepare_scale_cred_input" {
+  content = <<EOT
 {
     "ibm_customer_number": "${var.ibm_customer_number}"
 }
 EOT
   filename          = local.scale_cred_path
+  count             = var.storage_type != "evaluation" ? 1 : 0
 }
-
 
 module "bootstrap_trusted_profile" {
   source                      = "./resources/ibmcloud/security/iam/trusted_profile"
@@ -427,14 +328,12 @@ module "bootstrap_trusted_profile" {
   trusted_profile_description = "Bootstrap trusted profile"
 }
 
-
 module "bootstrap_trusted_profile_is_policy" {
   source                = "./resources/ibmcloud/security/iam/trusted_profile_is_policy"
   trusted_profile_id    = module.bootstrap_trusted_profile.trusted_profile_id
   trusted_profile_roles = ["Administrator"]
   resource_group_id     = data.ibm_resource_group.itself.id
 }
-
 
 module "bootstrap_trusted_profile_dns_policy" {
   source                = "./resources/ibmcloud/security/iam/trusted_profile_dns_policy"
@@ -492,14 +391,32 @@ resource "time_sleep" "wait_60_seconds" {
   depends_on      = [module.bootstrap_vsi]
 }
 
-resource "null_resource" "bootstrap_status" {
+resource "null_resource" "scale_entitlement_file_provisioner" {
+  count = var.storage_type != "evaluation" ? 1 : 0
   connection {
-    type        = "ssh"
-    host        = module.bootstrap_vsi.vsi_private_ip
-    user        = "vpcuser"
-    private_key = module.bootstrap_ssh_keys.private_key_content
-    bastion_host = module.bastion_attach_fip.floating_ip_addr
-    bastion_user = "ubuntu"
+    type                = "ssh"
+    host                = module.bootstrap_vsi.vsi_private_ip
+    user                = "vpcuser"
+    private_key         = module.bootstrap_ssh_keys.private_key_content
+    bastion_host        = module.bastion_attach_fip.floating_ip_addr
+    bastion_user        = "ubuntu"
+    bastion_private_key = module.bastion_proxy_ssh_keys.private_key_content
+  }
+
+  provisioner "file" {
+    source      = local.scale_cred_path
+    destination = local.remote_scale_cred_path
+  }
+}
+
+resource "null_resource" "scale_cluster_provisioner" {
+  connection {
+    type                = "ssh"
+    host                = module.bootstrap_vsi.vsi_private_ip
+    user                = "vpcuser"
+    private_key         = module.bootstrap_ssh_keys.private_key_content
+    bastion_host        = module.bastion_attach_fip.floating_ip_addr
+    bastion_user        = "ubuntu"
     bastion_private_key = module.bastion_proxy_ssh_keys.private_key_content
   }
 
@@ -508,17 +425,12 @@ resource "null_resource" "bootstrap_status" {
     destination = local.remote_inputs_path
   }
 
-  provisioner "file" {
-    source      = local.scale_cred_path
-    destination = local.remote_scale_cred_path
-  }
-
   provisioner "remote-exec" {
     inline = [
       "sudo python3 /opt/IBM/ibm-spectrumscale-cloud-deploy/cloud_deploy/cloud_deployer.py ibmcloud --profile-id ${module.bootstrap_trusted_profile.trusted_profile_id} --schematics-input-file /tmp/terraform.tfvars.json"
     ]
   }
-  depends_on = [module.bootstrap_vsi, module.bastion_attach_fip, time_sleep.wait_60_seconds, local_file.prepare_scale_vsi_input]
+  depends_on = [module.bootstrap_vsi, module.bastion_attach_fip, time_sleep.wait_60_seconds, local_sensitive_file.prepare_scale_vsi_input, local_sensitive_file.prepare_scale_cred_input]
 }
 
 data "ibm_iam_auth_token" "token" {}
@@ -543,6 +455,6 @@ resource "null_resource" "delete_schematics_ingress_security_rule" {
         EOT
   }
   depends_on = [
-    module.bootstrap_vsi, module.bootstrap_link_profile, null_resource.bootstrap_status, time_sleep.wait_60_seconds
+    module.bootstrap_vsi, module.bootstrap_link_profile, null_resource.scale_cluster_provisioner, time_sleep.wait_60_seconds
   ]
 }

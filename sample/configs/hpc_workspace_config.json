@@ -111,7 +111,7 @@
         },
         {
           "name": "bootstrap_osimage_name",
-          "value": "hpcc-scale-bootstrap-v2",
+          "value": "hpcc-scale-bootstrap-v2-1",
           "type": "string",
           "secure": false,
           "description": "Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided."
@@ -139,10 +139,10 @@
         },
         {
           "name": "ibm_customer_number",
-          "value": "Please fill here",
+          "value": null,
           "type": "string",
           "secure": true,
-          "description": "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
+          "description": "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
         },
         {
           "name": "compute_cluster_filesystem_mountpoint",
@@ -216,14 +216,14 @@
         },
         {
           "name": "compute_vsi_osimage_name",
-          "value": "hpcc-scale5141-rhel79-v2",
+          "value": "hpcc-scale5141-rhel79-v2-1",
           "type": "string",
           "secure": false,
           "description": "Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
         },
         {
           "name": "storage_vsi_osimage_name",
-          "value": "hpcc-scale5141-rhel84-v2",
+          "value": "hpcc-scale5141-rhel84-v2-1",
           "type": "string",
           "secure": false,
           "description": "Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
@@ -254,7 +254,7 @@
           "value": "scratch",
           "type": "string",
           "secure": false,
-          "description": "Select the Spectrum Scale file system deployment method. Note:The Spectrum Scale scratch type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for evaluation and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use."
+          "description": "Select the Spectrum Scale file system deployment method. Note: The Spectrum Scale scratch and evaluation type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for prototyping and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use."
         },
         {
           "name": "storage_bare_metal_server_profile",

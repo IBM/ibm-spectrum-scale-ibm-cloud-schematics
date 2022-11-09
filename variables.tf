@@ -118,7 +118,7 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2"
+  default     = "hpcc-scale-bootstrap-v2-1"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -135,11 +135,8 @@ variable "bootstrap_vsi_profile" {
 variable "ibm_customer_number" {
   type        = string
   sensitive   = true
-  description = "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
-  validation {
-    condition     = trimspace(var.ibm_customer_number) != ""
-    error_message = "Specified input for \"ibm_customer_number\" cannot be empty."
-  }
+  default     = null
+  description = "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
 }
 
 variable "compute_cluster_filesystem_mountpoint" {
@@ -242,7 +239,7 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5141-rhel79-v2"
+  default     = "hpcc-scale5141-rhel79-v2-1"
   description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
@@ -253,7 +250,7 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5141-rhel84-v2"
+  default     = "hpcc-scale5141-rhel84-v2-1"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
@@ -294,11 +291,11 @@ variable "storage_cluster_gui_password" {
 variable "storage_type" {
   type        = string
   default     = "scratch"
-  description = "Select the Spectrum Scale file system deployment method. Note: The Spectrum Scale scratch type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for evaluation and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use."
+  description = "Select the Spectrum Scale file system deployment method. Note: The Spectrum Scale scratch and evaluation type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for prototyping and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use."
   validation {
-    condition = can(regex("^(scratch|persistent)$", lower(var.storage_type)))
+    condition = can(regex("^(scratch|persistent|evaluation)$", lower(var.storage_type)))
     #condition     = contains(["scratch", "persistent"], lower(var.storage_type))
-    error_message = "Our automation support only version of scratch and persistent, provide any one of the value."
+    error_message = "The solution only support scratch, evaluation, and persistent; provide any one of the value."
   }
 }
 
