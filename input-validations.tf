@@ -117,7 +117,7 @@ data "ibm_is_image" "compute_image" {
 
 data "ibm_is_image" "storage_image" {
   name  = var.storage_vsi_osimage_name
-  count = var.storage_type != "persistent" && local.storage_image_mapping_entry_found ? 0 : 1
+  count = local.storage_image_mapping_entry_found ? 0 : 1
 }
 
 data "ibm_is_image" "bare_metal_image" {
