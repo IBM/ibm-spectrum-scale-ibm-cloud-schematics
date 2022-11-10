@@ -48,7 +48,7 @@ output "trusted_profile_id" {
   description = "IBM Cloud Trusted Profile ID."
 }
 
-output "shematics_controller_ip"{
-  value = ["${chomp(data.http.fetch_myip.body)}"]
+output "schematics_controller_ip"{
+  value = [chomp(data.http.fetch_myip.body)]
   description = "IP that has been used by the schematics side to ssh for bastion node to push the user input data file to create storage and compute cluster."
 }
