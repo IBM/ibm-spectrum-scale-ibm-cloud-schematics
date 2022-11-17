@@ -1,5 +1,9 @@
 # **CHANGELOG**
 
+## **2.1.1**
+### ENHANCEMENTS
+- Upgraded OS support for persistent storage type from RHEL 8.4 to RHEL 8.6
+
 ## **2.1.0**
 ### ENHANCEMENTS
 - Support for evaluation storage type based on IBM Spectrum Scale developer edition
