@@ -265,7 +265,7 @@
         },
         {
           "name": "storage_bare_metal_osimage_name",
-          "value": "ibm-redhat-8-6-minimal-amd64-2",
+          "value": "ibm-redhat-8-4-minimal-amd64-3",
           "type": "string",
           "secure": false,
           "description": "Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.4 stock image."
