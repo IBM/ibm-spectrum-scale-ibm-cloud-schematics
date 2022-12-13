@@ -311,8 +311,8 @@ variable "storage_bare_metal_server_profile" {
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-6-minimal-amd64-2"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.6 stock image."
+  default     = "ibm-redhat-8-4-minimal-amd64-3"
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.4 stock image."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
     error_message = "Specified input \"storage_vsi_osimage_name\" is not valid."
