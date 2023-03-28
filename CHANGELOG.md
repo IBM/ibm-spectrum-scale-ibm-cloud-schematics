@@ -1,5 +1,9 @@
 # **CHANGELOG**
 
+## **2.1.1**
+### ENHANCEMENTS
+- Support for persistent storage type based on IBM Spectrum Scale deployment on bare metal servers (GA).
+
 ## **2.1.0**
 ### ENHANCEMENTS
 - Support for evaluation storage type based on IBM Spectrum Scale developer edition
