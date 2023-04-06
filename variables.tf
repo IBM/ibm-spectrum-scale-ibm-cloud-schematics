@@ -12,7 +12,7 @@ variable "TF_VERSION" {
 
 variable "resource_group" {
   type        = string
-  default     = "default"
+  default     = "Default"
   description = "Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui)."
 }
 
@@ -118,7 +118,7 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-1"
+  default     = "hpcc-scale-bootstrap-v2-1-1"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -135,8 +135,12 @@ variable "bootstrap_vsi_profile" {
 variable "ibm_customer_number" {
   type        = string
   sensitive   = true
-  default     = null
+  default     = ""
   description = "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
+  validation {
+    condition = can(regex("^[0-9A-Za-z]*$", var.ibm_customer_number))
+    error_message = "The IBM customer number input value cannot have special characters."
+  }
 }
 
 variable "compute_cluster_filesystem_mountpoint" {
@@ -239,7 +243,7 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5141-rhel79-v2-1"
+  default     = "hpcc-scale5141-rhel79-v2-1-1"
   description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
@@ -250,7 +254,7 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5141-rhel84-v2-1"
+  default     = "hpcc-scale5141-rhel84-v2-1-1"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
