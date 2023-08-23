@@ -6,7 +6,7 @@ variable "TF_PARALLELISM" {
 
 variable "TF_VERSION" {
   type        = string
-  default     = "1.0"
+  default     = "1.4"
   description = "The version of the Terraform engine that's used in the Schematics workspace."
 }
 
@@ -23,13 +23,13 @@ variable "vpc_region" {
 
 variable "vpc_availability_zones" {
   type        = list(string)
-  description = "IBM Cloud availability zone names within the selected region where the Spectrum Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
+  description = "IBM Cloud availability zone names within the selected region where the Storage Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
 }
 
 variable "resource_prefix" {
   type        = string
-  default     = "spectrum-scale"
-  description = "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Spectrum Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64."
+  default     = "storage-scale"
+  description = "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Storage Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64."
 }
 
 variable "vpc_cidr_block" {
@@ -76,7 +76,7 @@ variable "vpc_storage_cluster_dns_domain" {
 
 variable "remote_cidr_blocks" {
   type        = list(string)
-  description = "Comma-separated list of IP addresses that can be access the Spectrum Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
+  description = "Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
   validation {
     condition     = alltrue([
   for o in var.remote_cidr_blocks : !contains(["0.0.0.0/0", "0.0.0.0"], o)
@@ -94,7 +94,7 @@ variable "remote_cidr_blocks" {
 variable "bastion_osimage_name" {
   type        = string
   default     = "ibm-ubuntu-20-04-3-minimal-amd64-2"
-  description = "Name of the image that will be used to provision the Bastion node for the Spectrum Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
+  description = "Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
 }
 
 variable "bastion_vsi_profile" {
@@ -118,8 +118,8 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-1-1"
-  description = "Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided."
+  default     = "hpcc-scale-bootstrap-v2-1-2"
+  description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
 variable "bootstrap_vsi_profile" {
@@ -146,7 +146,7 @@ variable "ibm_customer_number" {
 variable "compute_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
-  description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file)."
+  description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
 
   validation {
     condition     = can(regex("^\\/[a-z0-9A-Z-_]+\\/[a-z0-9A-Z-_]+$", var.compute_cluster_filesystem_mountpoint))
@@ -157,7 +157,7 @@ variable "compute_cluster_filesystem_mountpoint" {
 variable "storage_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
-  description = "Spectrum Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file)."
+  description = "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
   validation {
     condition     = can(regex("^\\/[a-z0-9A-Z-_]+\\/[a-z0-9A-Z-_]+$", var.storage_cluster_filesystem_mountpoint))
     error_message = "Specified value for \"storage_cluster_filesystem_mountpoint\" is not valid (valid: /gpfs/fs1)."
@@ -167,11 +167,11 @@ variable "storage_cluster_filesystem_mountpoint" {
 variable "filesystem_block_size" {
   type        = string
   default     = "4M"
-  description = "File system [block size](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=considerations-block-size). Spectrum Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
+  description = "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
 
   validation {
     condition     = can(regex("^256K$|^512K$|^1M$|^2M$|^4M$|^8M$|^16M$", var.filesystem_block_size))
-    error_message = "Specified block size must be a valid IBM Spectrum Scale supported block sizes (256K, 512K, 1M, 2M, 4M, 8M, 16M)."
+    error_message = "Specified block size must be a valid IBM Storage Scale supported block sizes (256K, 512K, 1M, 2M, 4M, 8M, 16M)."
   }
 }
 
@@ -243,8 +243,8 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5141-rhel79-v2-1-1"
-  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+  default     = "hpcc-scale5181-rhel79"
+  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
     condition     = trimspace(var.compute_vsi_osimage_name) != ""
@@ -254,8 +254,8 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5141-rhel84-v2-1-1"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
+  default     = "hpcc-scale5181-rhel86"
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.6 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
     condition     = trimspace(var.storage_vsi_osimage_name) != ""
@@ -295,7 +295,7 @@ variable "storage_cluster_gui_password" {
 variable "storage_type" {
   type        = string
   default     = "scratch"
-  description = "Select the Spectrum Scale file system deployment method. Note: The Spectrum Scale scratch and evaluation type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for prototyping and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use."
+  description = "Select the Storage Scale file system deployment method. Note: The Storage Scale scratch and evaluation type deploys the Storage Scale file system on virtual server instances, and the persistent type deploys the Storage Scale file system on bare metal servers."
   validation {
     condition = can(regex("^(scratch|persistent|evaluation)$", lower(var.storage_type)))
     #condition     = contains(["scratch", "persistent"], lower(var.storage_type))
@@ -315,8 +315,8 @@ variable "storage_bare_metal_server_profile" {
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-4-minimal-amd64-3"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.4 stock image."
+  default     = "ibm-redhat-8-6-minimal-amd64-5"
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
     error_message = "Specified input \"storage_vsi_osimage_name\" is not valid."

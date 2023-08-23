@@ -1,10 +1,10 @@
-# IBM Spectrum Scale Solution
+# IBM Storage Scale Solution
 
 Repository for the Scale Solution Tile implementation files.
 
 # Deployment with Schematics CLI on IBM Cloud
 
-Follow the steps below to provision an IBM Spectrum Scale cluster using IBM Cloud CLI.
+Follow the steps below to provision an IBM Storage Scale cluster using IBM Cloud CLI.
 
 ```
 $ cp sample/configs/hpc_workspace_config.json config.json
@@ -12,7 +12,7 @@ $ ibmcloud iam api-key-create my-api-key --file ~/.ibm-api-key.json -d "my api k
 $ cat ~/.ibm-api-key.json | jq -r ."apikey"
 # copy your apikey
 $ vim config.json
-# paste your apikey and set all the required input parameters to create spectrum scale cluster
+# paste your apikey and set all the required input parameters to create storage scale cluster
 ```
 Also need to generate github token if you use private Github repository.
 
@@ -22,7 +22,7 @@ Also need to generate github token if you use private Github repository.
 $ ibmcloud schematics workspace new -f config.json --github-token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 $ ibmcloud schematics workspace list | grep <workspace name provided in config.json>
 Name                     ID                                       Description     Version           Status     Frozen
-hpcc-scale-test      us-east.workspace.hpcc-scale-test.3172ff2f               Terraform v1.0.11    INACTIVE         False   
+hpcc-scale-test      us-east.workspace.hpcc-scale-test.3172ff2f               Terraform v1.4.6    INACTIVE         False   
                                   
 OK
 $ ibmcloud schematics plan --id us-east.workspace.hpcc-scale-test.3172ff2f 
@@ -63,7 +63,7 @@ OK
 # Deployment with Schematics UI on IBM Cloud
 
 1. Go to <https://cloud.ibm.com/schematics/workspaces> and click on create a workspace.
-2. Further with Schematics workspace creation page, specify the github repo URL and provide the SSH token to access private Github repo. Select Terraform version as 1.0 and click next.
+2. Further with Schematics workspace creation page, specify the github repo URL and provide the SSH token to access private Github repo. Select Terraform version as 1.4 and click next.
 3. Update the workspace details with the name/resource group information. Also choose in which region the workspace needs to be created and click save.
 4. Go to Schematic Workspace Settings, under variable section, click on "burger icons" to update the following parameters:
     - Provide the region and vpc_availability_zones details, where the scale cluster resources need to be provisioned.
@@ -81,8 +81,8 @@ OK
 8. See the Log if the "Apply Plan" activity is successful and copy the output SSH command to your laptop terminal to SSH to either bootstrap/storage/compute nodes.
 9. If device gets connected to any other different network i.e(Wi-Fi/LAN/Mobile Hotspot) from usual connection. Update the public ip address on Bastion security group to SSH to nodes 
 
-# Spectrum Scale Storage Node and GPFS Setup
-* The Spectrum Scale storage and compute nodes are configured as a GPFS cluster (owningCluster) which owns and serves the file system to be mounted. 
+# Storage Scale Storage Node and GPFS Setup
+* The Storage Scale storage and compute nodes are configured as a GPFS cluster (owningCluster) which owns and serves the file system to be mounted. 
 * AccessingCluster, i.e., the compute cluster is the cluster that accesses owningCluster, and is also configured as a GPFS cluster. 
 * The file system mountpoint on owningCluster(storage gpfs Cluster) is specified in the variable storage_cluster_filesystem_mountpoint. Default value = "/gpfs/fs1"
 * The file system mountpoint on accessingCluster(compute gpfs Cluster) is specified in the variable compute_cluster_filesystem_mountpoint. Default value = "/gpfs/fs1"
@@ -101,9 +101,9 @@ OK
 # mmgetstate -a 
 Node number  Node name                 GPFS state  
 ----------------------------------------------------
-           1  spectrum-scale-storage-2  active
-           2  spectrum-scale-storage-3  active
-           3  spectrum-scale-storage-1  active
+           1  storage-scale-storage-2  active
+           2  storage-scale-storage-3  active
+           3  storage-scale-storage-1  active
 ```
 
 * The command below shows the complete information about GPFS cluster/IP address/Admin node/Designation
@@ -112,18 +112,18 @@ Node number  Node name                 GPFS state
 
 GPFS cluster information
 ========================
-  GPFS cluster name:         spectrum-scale.storage
+  GPFS cluster name:         storage-scale.storage
   GPFS cluster id:           9876153676758860235
-  GPFS UID domain:           spectrum-scale.storage
+  GPFS UID domain:           storage-scale.storage
   Remote shell command:      /usr/bin/ssh
   Remote file copy command:  /usr/bin/scp
   Repository type:           CCR
 
  Node  Daemon node name                        IP address  Admin node name                         Designation
 ---------------------------------------------------------------------------------------------------------------
-   1   spectrum-scale-storage-2.strgscale.com  10.241.1.7  spectrum-scale-storage-2.strgscale.com  quorum-manager-perfmon
-   2   spectrum-scale-storage-3.strgscale.com  10.241.1.8  spectrum-scale-storage-3.strgscale.com  quorum-manager-perfmon
-   3   spectrum-scale-storage-1.strgscale.com  10.241.1.9  spectrum-scale-storage-1.strgscale.com  quorum-perfmon
+   1   storage-scale-storage-2.strgscale.com  10.241.1.7  storage-scale-storage-2.strgscale.com  quorum-manager-perfmon
+   2   storage-scale-storage-3.strgscale.com  10.241.1.8  storage-scale-storage-3.strgscale.com  quorum-manager-perfmon
+   3   storage-scale-storage-1.strgscale.com  10.241.1.9  storage-scale-storage-1.strgscale.com  quorum-perfmon
 
 
 ```
@@ -153,7 +153,7 @@ flag                value                    description
                     none                     Default quotas enabled
  --perfileset-quota no                       Per-fileset quota enforcement
  --filesetdf        no                       Fileset df enabled?
- -V                 28.00 (5.1.4.0)          File system version
+ -V                 28.00 (5.1.7.0)          File system version
  --create-time      Fri Sep  2 11:31:17 2022 File system creation time
  -z                 no                       Is DMAPI enabled?
  -L                 33554432                 Logfile size
@@ -188,12 +188,12 @@ flag                value                    description
 ```
 # mmlsmount all -L
 File system fs1 is mounted on 6 nodes:
-  10.241.1.8      spectrum-scale-storage-3.strgscale spectrum-scale.storage    
-  10.241.1.9      spectrum-scale-storage-1.strgscale spectrum-scale.storage    
-  10.241.1.7      spectrum-scale-storage-2.strgscale spectrum-scale.storage    
-  10.241.0.5      spectrum-scale-compute-3.compscale spectrum-scale.compute    
-  10.241.0.7      spectrum-scale-compute-1.compscale spectrum-scale.compute    
-  10.241.0.6      spectrum-scale-compute-2.compscale spectrum-scale.compute 
+  10.241.1.8      storage-scale-storage-3.strgscale storage-scale.storage    
+  10.241.1.9      storage-scale-storage-1.strgscale storage-scale.storage    
+  10.241.1.7      storage-scale-storage-2.strgscale storage-scale.storage    
+  10.241.0.5      storage-scale-compute-3.compscale storage-scale.compute    
+  10.241.0.7      storage-scale-compute-1.compscale storage-scale.compute    
+  10.241.0.6      storage-scale-compute-2.compscale storage-scale.compute 
 ```
 * The command below shows the information about the NSD servers and Disk name
 
@@ -202,12 +202,12 @@ File system fs1 is mounted on 6 nodes:
 
  File system   Disk name       NSD servers                                    
 ------------------------------------------------------------------------------
- fs1           nsd_10_241_1_7_vdb spectrum-scale-storage-2.strgscale.com 
- fs1           nsd_10_241_1_7_vdc spectrum-scale-storage-2.strgscale.com 
- fs1           nsd_10_241_1_8_vdb spectrum-scale-storage-3.strgscale.com 
- fs1           nsd_10_241_1_8_vdc spectrum-scale-storage-3.strgscale.com 
- fs1           nsd_10_241_1_9_vdb spectrum-scale-storage-1.strgscale.com 
- fs1           nsd_10_241_1_9_vdc spectrum-scale-storage-1.strgscale.com 
+ fs1           nsd_10_241_1_7_vdb storage-scale-storage-2.strgscale.com 
+ fs1           nsd_10_241_1_7_vdc storage-scale-storage-2.strgscale.com 
+ fs1           nsd_10_241_1_8_vdb storage-scale-storage-3.strgscale.com 
+ fs1           nsd_10_241_1_8_vdc storage-scale-storage-3.strgscale.com 
+ fs1           nsd_10_241_1_9_vdb storage-scale-storage-1.strgscale.com 
+ fs1           nsd_10_241_1_9_vdc storage-scale-storage-1.strgscale.com 
 ```
 
 * The command below shows the heath status of the cluster
@@ -234,7 +234,7 @@ THRESHOLD               3              0              0              3          
 ```
 # mmhealth node show 
 
-Node name:      spectrum-scale-storage-3.strgscale.com
+Node name:      storage-scale-storage-3.strgscale.com
 Node status:    HEALTHY
 Status Change:  2 hours ago
 
@@ -253,7 +253,7 @@ THRESHOLD      HEALTHY       2 hours ago       -
 ```
 # mmhealth node show -N 10.241.1.9
 
-Node name:      spectrum-scale-storage-1.strgscale.com
+Node name:      storage-scale-storage-1.strgscale.com
 Node status:    HEALTHY
 Status Change:  2 hours ago
 
@@ -291,12 +291,12 @@ Last login: Thu Apr 21 11:49:39 2022 from 10.241.1.5
 
 ```
 # mmauth show
-Cluster name:        spectrum-scale.compute
+Cluster name:        storage-scale.compute
 Cipher list:         AUTHONLY
 SHA digest:          1645130b96b8518d98b420a80c078638384a3a58a08c100c63e0de9f34501641
 File system access:  fs1       (rw, root allowed)
 
-Cluster name:        spectrum-scale.storage (this cluster)
+Cluster name:        storage-scale.storage (this cluster)
 Cipher list:         AUTHONLY
 SHA digest:          173bb739f290dab735ce250c1d954d6da1d912aa8b650d5b3fca49ac2e9475fd
 File system access:  (all rw)
@@ -307,14 +307,14 @@ File system access:  (all rw)
 ```
 # mmlsconfig
 
-Configuration data for cluster spectrum-scale.storage:
+Configuration data for cluster storage-scale.storage:
 ------------------------------------------------------
-clusterName spectrum-scale.storage
+clusterName storage-scale.storage
 clusterId 14139934390600460176
 autoload yes
 profile storagesncparams
 dmapiFileHandleSize 32
-minReleaseLevel 5.1.4.0
+minReleaseLevel 5.1.8.0
 tscCmdAllowRemoteConnections no
 ccrEnabled yes
 cipherList AUTHONLY
@@ -345,7 +345,7 @@ pagepool 32G
 tscCmdPortRange 60000-61000
 adminMode central
 
-File systems in cluster spectrum-scale.storage:
+File systems in cluster storage-scale.storage:
 -----------------------------------------------
 /dev/fs1
 
@@ -353,8 +353,8 @@ File systems in cluster spectrum-scale.storage:
 
 Note: The above specified commands can be tried from both compute/storage nodes. The output would be the same, respective of nodes accessed from 
 
-### Replication for IBM Spectrum Scale Persistent
-1. IBM Spectrum Scale replication provides high availability at the storage level by having two consistent replicas of the file system; each available for recovery when the other one fails. 
+### Replication for IBM Storage Scale Persistent
+1. IBM Storage Scale replication provides high availability at the storage level by having two consistent replicas of the file system; each available for recovery when the other one fails. 
 2. The two replicas are kept in-sync by using logical replication-based mirroring that does not require specific support from the underlying disk subsystem.
 3. The data and metadata replication features of GPFS are used to maintain a secondary copy of each file system block, relying on the concept of disk failure groups to control the physical placement of the individual copies.
 
@@ -365,7 +365,7 @@ Note: The above specified commands can be tried from both compute/storage nodes.
 ```
 # mmlsfs all -r
 
-File system attributes for spectrum-scale.storage:/dev/fs1:
+File system attributes for storage-scale.storage:/dev/fs1:
 ===========================================================
 flag        value          description
 ------------------- ------------------------ -----------------------------------
@@ -383,7 +383,7 @@ flag                value                    description
 ```
 # mmlsfs all -R
 
-File system attributes for spectrum-scale.storage:/dev/fs1:
+File system attributes for storage-scale.storage:/dev/fs1:
 ===========================================================
 flag        value          description
 ------------------- ------------------------ -----------------------------------
@@ -415,7 +415,7 @@ flag                value                    description
 # sudo su
 # mmcloudworkflows cluster info
  
-Spectrum Scale Storage Cluster
+Storage Scale Storage Cluster
 |-------------------------------------------|---------------|--------|-----|
 |                Instance Id                |   Private IP  | Quorum | GUI |
 |-------------------------------------------|---------------|--------|-----|
@@ -426,7 +426,7 @@ Spectrum Scale Storage Cluster
  
 Admin Node: 10.241.1.7
  
-Spectrum Scale Compute Cluster
+Storage Scale Compute Cluster
 |-------------------------------------------|---------------|--------|-----|
 |                Instance Id                |   Private IP  | Quorum | GUI |
 |-------------------------------------------|---------------|--------|-----|
@@ -448,7 +448,7 @@ Admin Node: 10.241.0.5
     =======================================================================
     |                          ! Danger Zone !                            |
     ======================================================================|
-    |  This workflow, will result in teardown of IBM Spectrum Scale       |
+    |  This workflow, will result in teardown of IBM Storage Scale       |
     |  cluster and resources. However, it will not destroy VPC, Bastion   |
     |  Host resources and the s3 bucket.                                  |
     |                                                                     |
@@ -461,12 +461,12 @@ Admin Node: 10.241.0.5
 Do you want to continue teardown [y/N]: y
 2022-04-21 14:13:33,844 - INFO - Proceeding for tear down ..
 2022-04-21 14:13:33,844 - INFO - Obtaining necessary permissions to destroy cluster resources
-2022-04-21 14:13:34,695 - INFO - Proceeding to destroy the IBM Spectrum Scale cluster
+2022-04-21 14:13:34,695 - INFO - Proceeding to destroy the IBM Storage Scale cluster
 2022-04-21 14:13:34,695 - INFO - This may take a few minutes to complete.
 
 ```
 **Note:** 
-* For the best user experience with Spectrum scale cluster destruction process, always log into Bootstrap node first and run the above destroy command. Wait a while for the resources related to storage and compute to be deleted.
+* For the best user experience with Storage scale cluster destruction process, always log into Bootstrap node first and run the above destroy command. Wait a while for the resources related to storage and compute to be deleted.
 * Once the above specified command is ran successful, login to IBM Cloud account and access schematics to destroy the resources from the workspace.
 
 ### Steps to access storage and compute GUI
@@ -483,6 +483,7 @@ Do you want to continue teardown [y/N]: y
 * To fetch the IP, you can login to bootstrap node and run one of the above specified command i.e (mmcloudworkflows cluster info). Block with "Y" shows where the GUI has been installed
 
 
+# Terraform Documentation
 <!-- BEGIN_TF_DOCS -->
 #### Requirements
 
@@ -499,30 +500,30 @@ Do you want to continue teardown [y/N]: y
 | <a name="input_compute_cluster_gui_password"></a> [compute_cluster_gui_password](#input_compute_cluster_gui_password) | Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username. | `string` |
 | <a name="input_compute_cluster_gui_username"></a> [compute_cluster_gui_username](#input_compute_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the compute cluster. The Username should be at least 4 characters, (any combination of lowercase and uppercase letters). | `string` |
 | <a name="input_compute_cluster_key_pair"></a> [compute_cluster_key_pair](#input_compute_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
-| <a name="input_remote_cidr_blocks"></a> [remote_cidr_blocks](#input_remote_cidr_blocks) | Comma-separated list of IP addresses that can be access the Spectrum Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : ["169.45.117.34"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/). | `list(string)` |
+| <a name="input_remote_cidr_blocks"></a> [remote_cidr_blocks](#input_remote_cidr_blocks) | Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : ["169.45.117.34"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/). | `list(string)` |
 | <a name="input_storage_cluster_gui_password"></a> [storage_cluster_gui_password](#input_storage_cluster_gui_password) | Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username. | `string` |
 | <a name="input_storage_cluster_gui_username"></a> [storage_cluster_gui_username](#input_storage_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters). | `string` |
 | <a name="input_storage_cluster_key_pair"></a> [storage_cluster_key_pair](#input_storage_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one SSH key that can be attached to the storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
-| <a name="input_vpc_availability_zones"></a> [vpc_availability_zones](#input_vpc_availability_zones) | IBM Cloud availability zone names within the selected region where the Spectrum Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations). | `list(string)` |
+| <a name="input_vpc_availability_zones"></a> [vpc_availability_zones](#input_vpc_availability_zones) | IBM Cloud availability zone names within the selected region where the Storage Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations). | `list(string)` |
 | <a name="input_vpc_region"></a> [vpc_region](#input_vpc_region) | Name of the IBM Cloud region where the resources need to be provisioned.(Examples: us-east, us-south, etc.) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations). | `string` |
 | <a name="input_TF_PARALLELISM"></a> [TF_PARALLELISM](#input_TF_PARALLELISM) | Limit the number of concurrent operation. | `string` |
 | <a name="input_TF_VERSION"></a> [TF_VERSION](#input_TF_VERSION) | The version of the Terraform engine that's used in the Schematics workspace. | `string` |
-| <a name="input_bastion_osimage_name"></a> [bastion_osimage_name](#input_bastion_osimage_name) | Name of the image that will be used to provision the Bastion node for the Spectrum Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported. | `string` |
+| <a name="input_bastion_osimage_name"></a> [bastion_osimage_name](#input_bastion_osimage_name) | Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported. | `string` |
 | <a name="input_bastion_vsi_profile"></a> [bastion_vsi_profile](#input_bastion_vsi_profile) | The virtual server instance profile type name to be used to create the Bastion node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles). | `string` |
-| <a name="input_bootstrap_osimage_name"></a> [bootstrap_osimage_name](#input_bootstrap_osimage_name) | Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided. | `string` |
+| <a name="input_bootstrap_osimage_name"></a> [bootstrap_osimage_name](#input_bootstrap_osimage_name) | Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided. | `string` |
 | <a name="input_bootstrap_vsi_profile"></a> [bootstrap_vsi_profile](#input_bootstrap_vsi_profile) | The virtual server instance profile type name to be used to create the Bootstrap node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui). | `string` |
-| <a name="input_compute_cluster_filesystem_mountpoint"></a> [compute_cluster_filesystem_mountpoint](#input_compute_cluster_filesystem_mountpoint) | Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file). | `string` |
-| <a name="input_compute_vsi_osimage_name"></a> [compute_vsi_osimage_name](#input_compute_vsi_osimage_name) | Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image. | `string` |
+| <a name="input_compute_cluster_filesystem_mountpoint"></a> [compute_cluster_filesystem_mountpoint](#input_compute_cluster_filesystem_mountpoint) | Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file). | `string` |
+| <a name="input_compute_vsi_osimage_name"></a> [compute_vsi_osimage_name](#input_compute_vsi_osimage_name) | Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image. | `string` |
 | <a name="input_compute_vsi_profile"></a> [compute_vsi_profile](#input_compute_vsi_profile) | The virtual server instance profile type name to be used to create the compute cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui). | `string` |
-| <a name="input_filesystem_block_size"></a> [filesystem_block_size](#input_filesystem_block_size) | File system [block size](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=considerations-block-size). Spectrum Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M. | `string` |
+| <a name="input_filesystem_block_size"></a> [filesystem_block_size](#input_filesystem_block_size) | File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M. | `string` |
 | <a name="input_ibm_customer_number"></a> [ibm_customer_number](#input_ibm_customer_number) | The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn). | `string` |
 | <a name="input_resource_group"></a> [resource_group](#input_resource_group) | Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui). | `string` |
-| <a name="input_resource_prefix"></a> [resource_prefix](#input_resource_prefix) | Prefix that is used to name the IBM Cloud resources that are provisioned to build the Spectrum Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64. | `string` |
-| <a name="input_storage_bare_metal_osimage_name"></a> [storage_bare_metal_osimage_name](#input_storage_bare_metal_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.4 stock image. | `string` |
+| <a name="input_resource_prefix"></a> [resource_prefix](#input_resource_prefix) | Prefix that is used to name the IBM Cloud resources that are provisioned to build the Storage Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64. | `string` |
+| <a name="input_storage_bare_metal_osimage_name"></a> [storage_bare_metal_osimage_name](#input_storage_bare_metal_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image. | `string` |
 | <a name="input_storage_bare_metal_server_profile"></a> [storage_bare_metal_server_profile](#input_storage_bare_metal_server_profile) | Specify the bare metal server profile type name to be used to create the bare metal storage nodes. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui). | `string` |
-| <a name="input_storage_cluster_filesystem_mountpoint"></a> [storage_cluster_filesystem_mountpoint](#input_storage_cluster_filesystem_mountpoint) | Spectrum Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file). | `string` |
-| <a name="input_storage_type"></a> [storage_type](#input_storage_type) | Select the Spectrum Scale file system deployment method. Note: The Spectrum Scale scratch and evaluation type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for prototyping and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use. | `string` |
-| <a name="input_storage_vsi_osimage_name"></a> [storage_vsi_osimage_name](#input_storage_vsi_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image. | `string` |
+| <a name="input_storage_cluster_filesystem_mountpoint"></a> [storage_cluster_filesystem_mountpoint](#input_storage_cluster_filesystem_mountpoint) | Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file). | `string` |
+| <a name="input_storage_type"></a> [storage_type](#input_storage_type) | Select the Storage Scale file system deployment method. Note: The Storage Scale scratch and evaluation type deploys the Storage Scale file system on virtual server instances, and the persistent type deploys the Storage Scale file system on bare metal servers. | `string` |
+| <a name="input_storage_vsi_osimage_name"></a> [storage_vsi_osimage_name](#input_storage_vsi_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.6 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image. | `string` |
 | <a name="input_storage_vsi_profile"></a> [storage_vsi_profile](#input_storage_vsi_profile) | Specify the virtual server instance profile type name to be used to create the Storage nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles). | `string` |
 | <a name="input_total_compute_cluster_instances"></a> [total_compute_cluster_instances](#input_total_compute_cluster_instances) | Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. | `number` |
 | <a name="input_total_storage_cluster_instances"></a> [total_storage_cluster_instances](#input_total_storage_cluster_instances) | Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent. | `number` |
