@@ -1,7 +1,7 @@
 {
   "name": "hpcc-scale-test",
   "type": [
-    "terraform_v1.0"
+    "terraform_v1.4"
   ],
   "location": "us-east",
   "resource_group": "Default",
@@ -13,7 +13,7 @@
   "template_data": [
     {
       "folder": ".",
-      "type": "terraform_v1.0",
+      "type": "terraform_v1.4",
       "env_values":[
         { 
           "TF_CLI_ARGS_apply": "-parallelism=250"
@@ -44,14 +44,14 @@
           "value": "Please fill here",
           "type": "list(string)",
           "secure": false,
-          "description": "IBM Cloud availability zone names within the selected region where the Spectrum Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
+          "description": "IBM Cloud availability zone names within the selected region where the Storage Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
         },
         {
           "name": "resource_prefix",
-          "value": "spectrum-scale",
+          "value": "storage-scale",
           "type": "string",
           "secure": false,
-          "description": "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Spectrum Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64."
+          "description": "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Storage Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64."
         },
         {
           "name": "resource_group",
@@ -100,21 +100,21 @@
           "value": "Please fill here",
           "type": "list(string)",
           "secure": false,
-          "description": "Comma-separated list of IP addresses that can be access the Spectrum Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
+          "description": "Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
         },
         {
           "name": "bastion_osimage_name",
           "value": "ibm-ubuntu-20-04-3-minimal-amd64-2",
           "type": "string",
           "secure": false,
-          "description": "Name of the image that will be used to provision the Bastion node for the Spectrum Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
+          "description": "Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
         },
         {
           "name": "bootstrap_osimage_name",
-          "value": "hpcc-scale-bootstrap-v2-1-1",
+          "value": "hpcc-scale-bootstrap-v2-1-2",
           "type": "string",
           "secure": false,
-          "description": "Name of the custom image that you would like to use to create the Bootstrap node for the Spectrum Scale cluster. The solution supports only the default custom image that has been provided."
+          "description": "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
         },
         {
           "name": "bastion_vsi_profile",
@@ -149,21 +149,21 @@
           "value": "/gpfs/fs1",
           "type": "string",
           "secure": false,
-          "description": "Spectrum Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file)."
+          "description": "Storage Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
         },
         {
           "name": "storage_cluster_filesystem_mountpoint",
           "value": "/gpfs/fs1",
           "type": "string",
           "secure": false,
-          "description": "Spectrum Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=system-mounting-remote-gpfs-file)."
+          "description": "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
         },
         {
           "name": "filesystem_block_size",
           "value": "4M",
           "type": "string",
           "secure": false,
-          "description": "File system [block size](https://www.ibm.com/docs/en/spectrum-scale/5.1.4?topic=considerations-block-size). Spectrum Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
+          "description": "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
         },
         {
           "name": "compute_vsi_profile",
@@ -216,17 +216,17 @@
         },
         {
           "name": "compute_vsi_osimage_name",
-          "value": "hpcc-scale5141-rhel79-v2-1-1",
+          "value": "hpcc-scale5181-rhel79",
           "type": "string",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the compute cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.4 versions that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+          "description": "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
         },
         {
           "name": "storage_vsi_osimage_name",
-          "value": "hpcc-scale5141-rhel84-v2-1-1",
+          "value": "hpcc-scale5181-rhel86",
           "type": "string",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the storage cluster nodes for the IBM Spectrum Scale cluster. The solution supports both stock and custom images that use RHEL8.4 version and that have the appropriate Spectrum Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
+          "description": "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.6 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
         },
         {
           "name": "storage_cluster_key_pair",
@@ -254,7 +254,7 @@
           "value": "scratch",
           "type": "string",
           "secure": false,
-          "description": "Select the Spectrum Scale file system deployment method. Note: The Spectrum Scale scratch and evaluation type deploys the Spectrum Scale file system on virtual server instances, and the persistent type deploys the Spectrum Scale file system on bare metal servers. The persistent Spectrum Scale storage feature is a beta feature that is available for prototyping and testing purposes. There are no warranties, SLAs, or support provided for persistent storage and it is not intended for production use."
+          "description": "Select the Storage Scale file system deployment method. Note: The Storage Scale scratch and evaluation type deploys the Storage Scale file system on virtual server instances, and the persistent type deploys the Storage Scale file system on bare metal servers."
         },
         {
           "name": "storage_bare_metal_server_profile",
@@ -265,10 +265,10 @@
         },
         {
           "name": "storage_bare_metal_osimage_name",
-          "value": "ibm-redhat-8-4-minimal-amd64-3",
+          "value": "ibm-redhat-8-6-minimal-amd64-5",
           "type": "string",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the storage cluster nodes for the Spectrum Scale cluster. The solution supports only a RHEL 8.4 stock image."
+          "description": "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image."
         }
       ]
     }

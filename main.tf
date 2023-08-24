@@ -255,6 +255,12 @@ locals {
   compute_private_subnets     = jsonencode(module.compute_private_subnet.subnet_id)
   storage_private_subnets     = jsonencode(module.storage_private_subnet.subnet_id)
   scale_cluster_resource_tags = jsonencode(local.tags)
+  scale_cloud_install_repo_url  = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
+  scale_cloud_install_repo_name = "ibm-spectrum-scale-cloud-install"
+  scale_cloud_install_branch    = "5.1.8.1"
+  scale_cloud_infra_repo_url    = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
+  scale_cloud_infra_repo_name   = "ibm-spectrum-scale-install-infra"
+  scale_cloud_infra_repo_tag    = "v2.7.0"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -299,7 +305,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "bastion_instance_public_ip": null,
     "bastion_instance_id": null,
     "bastion_ssh_private_key": null,
-    "using_direct_connection": true,
+    "using_jumphost_connection": false,
     "scale_cluster_resource_tags": ${local.scale_cluster_resource_tags},
     "compute_vsi_osimage_id": "${local.compute_image_id}",
     "storage_vsi_osimage_id": "${local.storage_image_id}",
@@ -427,6 +433,8 @@ resource "null_resource" "scale_cluster_provisioner" {
 
   provisioner "remote-exec" {
     inline = [
+      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name} ]; then sudo git clone -b ${local.scale_cloud_install_branch} ${local.scale_cloud_install_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name}; fi",
+      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale ]; then sudo git clone -b ${local.scale_cloud_infra_repo_tag} ${local.scale_cloud_infra_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale; fi",
       "sudo python3 /opt/IBM/ibm-spectrumscale-cloud-deploy/cloud_deploy/cloud_deployer.py ibmcloud --profile-id ${module.bootstrap_trusted_profile.trusted_profile_id} --schematics-input-file /tmp/terraform.tfvars.json"
     ]
   }
