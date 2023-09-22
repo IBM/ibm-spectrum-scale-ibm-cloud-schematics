@@ -407,68 +407,6 @@ flag                value                    description
 
 ```
 
-### Steps to Validate Cluster Information Setup from Bootstrap  
-
-* The command below shows the complete storage/compute cluster information
-
-```
-# sudo su
-# mmcloudworkflows cluster info
- 
-Storage Scale Storage Cluster
-|-------------------------------------------|---------------|--------|-----|
-|                Instance Id                |   Private IP  | Quorum | GUI |
-|-------------------------------------------|---------------|--------|-----|
-| 0787_46b70435-ca51-42ed-9953-5723a14329a3 |   10.241.1.9  |   Y    |     |
-| 0787_45bf9f53-e480-4e0e-af49-c48a2f5a792e |   10.241.1.7  |   Y    |  Y  |
-| 0787_b201c97f-744f-4bf1-8e46-abd175f1cec1 |   10.241.1.8  |   Y    |     |
-|-------------------------------------------|---------------|--------|-----|
- 
-Admin Node: 10.241.1.7
- 
-Storage Scale Compute Cluster
-|-------------------------------------------|---------------|--------|-----|
-|                Instance Id                |   Private IP  | Quorum | GUI |
-|-------------------------------------------|---------------|--------|-----|
-| 0787_5d168e74-f278-4fd7-9d59-ee1ac8cb0002 |   10.241.0.7  |   Y    |     |
-| 0787_0f8d00e2-4210-4ddd-8c00-427b3bdd9229 |   10.241.0.6  |   Y    |     |
-| 0787_cb3a9b6d-d882-4d60-9630-644222756da8 |   10.241.0.5  |   Y    |  Y  |
-|-------------------------------------------|---------------|--------|-----|
- 
-Admin Node: 10.241.0.5
-
-```
-
-* The command below shows how to destroy the storage and compute nodes part of scale cluster
-
-```
-# mmcloudworkflows cluster destroy ibmcloud
-2022-04-21 14:13:14,594 - INFO - Logging in to file: /var/adm/ras/ibm_cloud_workflow_logs/mm_cloud_workflow_teardown.log_2022-Apr-21_14-13-14
-
-    =======================================================================
-    |                          ! Danger Zone !                            |
-    ======================================================================|
-    |  This workflow, will result in teardown of IBM Storage Scale       |
-    |  cluster and resources. However, it will not destroy VPC, Bastion   |
-    |  Host resources and the s3 bucket.                                  |
-    |                                                                     |
-    |  Notes:                                                             |
-    |  1. Ensure to STOP all your applications before proceeding further. |
-    |  2. All IBM Scale Scale instances must be in either 'running',      |
-    |     'pending', 'stopping' or 'stopped' state.                       |
-    =======================================================================
-        
-Do you want to continue teardown [y/N]: y
-2022-04-21 14:13:33,844 - INFO - Proceeding for tear down ..
-2022-04-21 14:13:33,844 - INFO - Obtaining necessary permissions to destroy cluster resources
-2022-04-21 14:13:34,695 - INFO - Proceeding to destroy the IBM Storage Scale cluster
-2022-04-21 14:13:34,695 - INFO - This may take a few minutes to complete.
-
-```
-**Note:** 
-* For the best user experience with Storage scale cluster destruction process, always log into Bootstrap node first and run the above destroy command. Wait a while for the resources related to storage and compute to be deleted.
-* Once the above specified command is ran successful, login to IBM Cloud account and access schematics to destroy the resources from the workspace.
-
 ### Steps to access storage and compute GUI
 
 * The command below shows need to be ran from local machine to access GUI for storage and compute cluster to monitor resources
@@ -480,7 +418,6 @@ Do you want to continue teardown [y/N]: y
 ```
 **Note:**
 * Provide the IP address of the GUI node for compute/storage 
-* To fetch the IP, you can login to bootstrap node and run one of the above specified command i.e (mmcloudworkflows cluster info). Block with "Y" shows where the GUI has been installed
 
 
 # Terraform Documentation
@@ -489,8 +426,7 @@ Do you want to continue teardown [y/N]: y
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_http"></a> [http](#requirement_http) | 3.0.1 |
-| <a name="requirement_ibm"></a> [ibm](#requirement_ibm) | 1.44.2 |
+| <a name="requirement_ibm"></a> [ibm](#requirement_ibm) | 1.56.2 |
 
 #### Inputs
 
@@ -500,6 +436,7 @@ Do you want to continue teardown [y/N]: y
 | <a name="input_compute_cluster_gui_password"></a> [compute_cluster_gui_password](#input_compute_cluster_gui_password) | Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username. | `string` |
 | <a name="input_compute_cluster_gui_username"></a> [compute_cluster_gui_username](#input_compute_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the compute cluster. The Username should be at least 4 characters, (any combination of lowercase and uppercase letters). | `string` |
 | <a name="input_compute_cluster_key_pair"></a> [compute_cluster_key_pair](#input_compute_cluster_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
+| <a name="input_ibmcloud_api_key"></a> [ibmcloud_api_key](#input_ibmcloud_api_key) | This is the IBM Cloud API key for the IBM Cloud account where the IBM Storage Scale cluster needs to be deployed. For more information on how to create an API key, see [Managing user API keys](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui). | `string` |
 | <a name="input_remote_cidr_blocks"></a> [remote_cidr_blocks](#input_remote_cidr_blocks) | Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : ["169.45.117.34"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/). | `list(string)` |
 | <a name="input_storage_cluster_gui_password"></a> [storage_cluster_gui_password](#input_storage_cluster_gui_password) | Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username. | `string` |
 | <a name="input_storage_cluster_gui_username"></a> [storage_cluster_gui_username](#input_storage_cluster_gui_username) | GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters). | `string` |
@@ -519,13 +456,20 @@ Do you want to continue teardown [y/N]: y
 | <a name="input_ibm_customer_number"></a> [ibm_customer_number](#input_ibm_customer_number) | The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn). | `string` |
 | <a name="input_resource_group"></a> [resource_group](#input_resource_group) | Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui). | `string` |
 | <a name="input_resource_prefix"></a> [resource_prefix](#input_resource_prefix) | Prefix that is used to name the IBM Cloud resources that are provisioned to build the Storage Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64. | `string` |
+| <a name="input_scale_encryption_admin_password"></a> [scale_encryption_admin_password](#input_scale_encryption_admin_password) | Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.1.1?topic=manager-password-policy) to know more about password policy of GKLM. | `string` |
+| <a name="input_scale_encryption_dns_domain"></a> [scale_encryption_dns_domain](#input_scale_encryption_dns_domain) | IBM Cloud DNS Services domain name to be used for the gklm cluster. | `string` |
+| <a name="input_scale_encryption_enabled"></a> [scale_encryption_enabled](#input_scale_encryption_enabled) | To enable the encryption for the filesystem. Select true or false | `bool` |
+| <a name="input_scale_encryption_instance_key_pair"></a> [scale_encryption_instance_key_pair](#input_scale_encryption_instance_key_pair) | Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Scale Encryption keyserver nodes. Make sure that the SSH key is present in the same resource group and region where the keyservers are provisioned. The solution supports only one ssh key that can be attached to keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions. | `string` |
+| <a name="input_scale_encryption_server_count"></a> [scale_encryption_server_count](#input_scale_encryption_server_count) | Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5. | `number` |
+| <a name="input_scale_encryption_vsi_osimage_name"></a> [scale_encryption_vsi_osimage_name](#input_scale_encryption_vsi_osimage_name) | Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.6 stock image | `string` |
+| <a name="input_scale_encryption_vsi_profile"></a> [scale_encryption_vsi_profile](#input_scale_encryption_vsi_profile) | Specify the virtual server instance profile type name used to create the storage nodes. For more information, see Instance profiles | `string` |
 | <a name="input_storage_bare_metal_osimage_name"></a> [storage_bare_metal_osimage_name](#input_storage_bare_metal_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image. | `string` |
 | <a name="input_storage_bare_metal_server_profile"></a> [storage_bare_metal_server_profile](#input_storage_bare_metal_server_profile) | Specify the bare metal server profile type name to be used to create the bare metal storage nodes. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui). | `string` |
 | <a name="input_storage_cluster_filesystem_mountpoint"></a> [storage_cluster_filesystem_mountpoint](#input_storage_cluster_filesystem_mountpoint) | Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file). | `string` |
 | <a name="input_storage_type"></a> [storage_type](#input_storage_type) | Select the Storage Scale file system deployment method. Note: The Storage Scale scratch and evaluation type deploys the Storage Scale file system on virtual server instances, and the persistent type deploys the Storage Scale file system on bare metal servers. | `string` |
 | <a name="input_storage_vsi_osimage_name"></a> [storage_vsi_osimage_name](#input_storage_vsi_osimage_name) | Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.6 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image. | `string` |
 | <a name="input_storage_vsi_profile"></a> [storage_vsi_profile](#input_storage_vsi_profile) | Specify the virtual server instance profile type name to be used to create the Storage nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles). | `string` |
-| <a name="input_total_compute_cluster_instances"></a> [total_compute_cluster_instances](#input_total_compute_cluster_instances) | Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. | `number` |
+| <a name="input_total_compute_cluster_instances"></a> [total_compute_cluster_instances](#input_total_compute_cluster_instances) | Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required. | `number` |
 | <a name="input_total_storage_cluster_instances"></a> [total_storage_cluster_instances](#input_total_storage_cluster_instances) | Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent. | `number` |
 | <a name="input_vpc_cidr_block"></a> [vpc_cidr_block](#input_vpc_cidr_block) | IBM Cloud VPC address prefixes that are needed for VPC creation. Since the solution supports only a single availability zone, provide one CIDR address prefix for VPC creation. For more information, see [Bring your own subnet](https://cloud.ibm.com/docs/vpc?topic=vpc-configuring-address-prefixes). | `list(string)` |
 | <a name="input_vpc_compute_cluster_dns_domain"></a> [vpc_compute_cluster_dns_domain](#input_vpc_compute_cluster_dns_domain) | IBM Cloud DNS Services domain name to be used for the compute cluster. | `string` |
@@ -537,9 +481,7 @@ Do you want to continue teardown [y/N]: y
 
 | Name | Description |
 |------|-------------|
-| <a name="output_schematics_controller_ip"></a> [schematics_controller_ip](#output_schematics_controller_ip) | IP that has been used by the schematics side to ssh for bastion node to push the user input data file to create storage and compute cluster. |
 | <a name="output_ssh_command"></a> [ssh_command](#output_ssh_command) | SSH command that can be used to login to bootstrap node to destroy the cluster. Use the same command to ssh to any of storage/compute node but update the respective ip of the nodes in place of bootstrap node ip.(Examples: ssh -J <ubuntu@bastionip> <vpcuser@ip of storage/compute node>) |
-| <a name="output_trusted_profile_id"></a> [trusted_profile_id](#output_trusted_profile_id) | IBM Cloud Trusted Profile ID. |
 | <a name="output_vpc_compute_cluster_dns_service_id"></a> [vpc_compute_cluster_dns_service_id](#output_vpc_compute_cluster_dns_service_id) | IBM Cloud DNS compute cluster resource instance server ID. |
 | <a name="output_vpc_compute_cluster_dns_zone_id"></a> [vpc_compute_cluster_dns_zone_id](#output_vpc_compute_cluster_dns_zone_id) | IBM Cloud DNS compute cluster zone ID. |
 | <a name="output_vpc_compute_cluster_private_subnets"></a> [vpc_compute_cluster_private_subnets](#output_vpc_compute_cluster_private_subnets) | List of IDs of compute cluster private subnets. |

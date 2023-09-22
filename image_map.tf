@@ -1,15 +1,15 @@
 locals {
   bootstrap_image_region_map = {
-    "hpcc-scale-bootstrap-v2-1-2" = {
-      "eu-gb"    = "r018-83a85898-15ca-4129-82e0-9a13008d01f9"
-      "eu-de"    = "r010-02af73d9-3989-4229-8a0e-4d9e61eac6f3"
-      "us-east"  = "r014-28faf89f-cb83-46e5-9d87-2c918f1d81ec"
-      "us-south" = "r006-fd05e935-dccc-44ae-b558-09fbe8aee3bb"
-      "jp-tok"   = "r022-2acd24db-cc84-447b-863b-8c8f1cf6d0af"
-      "jp-osa"   = "r034-db75c7a0-5020-464d-ae0c-8b2b79468f1a"
-      "au-syd"   = "r026-8372919b-7390-4b3a-8d4e-8c3c7191d810"
-      "br-sao"   = "r042-edc5ed2f-6d23-4002-80a7-3fe66fbcf138"
-      "ca-tor"   = "r038-eeafd098-fff3-4b2f-a732-2f09c18e8f33"
+    "hpcc-scale-bootstrap-v2-2" = {
+      "eu-gb"    = "r018-d393986d-15b7-4bb9-bc10-6c9e7d0d4ec5"
+      "eu-de"    = "r010-e885c48a-0c2f-40a6-9d08-378502cc1e3a"
+      "us-east"  = "r014-20211080-34be-458a-99bc-29e024a1ff08"
+      "us-south" = "r006-e27031d0-2145-476f-a3a2-c3825ed524c9"
+      "jp-tok"   = "r022-4f0c4759-4d90-4897-86b4-a390dc567987"
+      "jp-osa"   = "r034-f7eb81c1-5043-47c9-8ee9-9d8ea59c6b33"
+      "au-syd"   = "r026-2275cf26-4734-4797-bbb1-2f213aa157f4"
+      "br-sao"   = "r042-5604fdbe-386e-48ad-8a0e-a21805e0b82e"
+      "ca-tor"   = "r038-2435aaa9-b4d6-4f38-9e9d-7c621bc7198f"
     }
   }
   compute_image_region_map = {
@@ -60,6 +60,19 @@ locals {
       "au-syd"   = "r026-054d5f32-45b0-4733-8923-ae445c132d01"
       "br-sao"   = "r042-5438da99-8af4-412f-98f2-480cda24e9ff"
       "ca-tor"   = "r038-7acab6b9-39b4-4722-a9a0-ca8471830b27"
+    }
+  }
+  scale_encryption_image_region_map = {
+    "hpcc-scale-gklm-v4-1-1-7" = {
+      "eu-gb"    = "r018-0344b93b-fca0-42dc-b30f-8ef8bfaed669"
+      "eu-de"    = "r010-5281b2a5-9c94-4461-a2b6-00f4d5e5b326"
+      "us-east"  = "r014-47643060-b1c0-470a-be3e-19e25c9c9e7a"
+      "us-south" = "r006-5bd61c86-f254-47ee-b715-4cd3361a3a66"
+      "jp-tok"   = "r022-ed732b0b-cd54-42c5-bb08-bb1bd53464e4"
+      "jp-osa"   = "r034-7faf0c47-0dff-4e2a-a5f5-c0b34742af31"
+      "au-syd"   = "r026-1d7b62d6-1482-4b83-a3d6-981d78a93eec"
+      "br-sao"   = "r042-b881fe6c-a136-4292-aba9-78cc0b6ec0d9"
+      "ca-tor"   = "r038-78eb3b33-77de-43ce-89a7-0222c16c07cf"
     }
   }
 }

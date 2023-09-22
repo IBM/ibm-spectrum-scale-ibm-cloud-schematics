@@ -103,6 +103,11 @@ locals {
   storage_image_mapping_entry_found = contains(keys(local.storage_image_region_map), var.storage_vsi_osimage_name)
   storage_image_id                  = var.storage_type == "evaluation" ? lookup(lookup(local.evaluation_image_region_map, one(keys(local.evaluation_image_region_map))), var.vpc_region) : local.storage_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.storage_image[0].id
   storage_osimage_name              = var.storage_type == "evaluation" ? one(keys(local.evaluation_image_region_map)) : local.storage_image_mapping_entry_found ? var.storage_vsi_osimage_name : data.ibm_is_image.storage_image[0].name
+
+  // Check whether an entry is found in the mapping file for the given GKLM image
+  scale_encryption_image_mapping_entry_found = contains(keys(local.scale_encryption_image_region_map), var.scale_encryption_vsi_osimage_name)
+  scale_encryption_image_id                  = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? lookup(lookup(local.scale_encryption_image_region_map, one(keys(local.scale_encryption_image_region_map))), var.vpc_region) : local.scale_encryption_image_mapping_entry_found ? lookup(lookup(local.scale_encryption_image_region_map, var.scale_encryption_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.scale_encryption_image[0].id
+  scale_encryption_osimage_name              = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? one(keys(local.scale_encryption_image_region_map)) : local.scale_encryption_image_mapping_entry_found ? var.scale_encryption_vsi_osimage_name : data.ibm_is_image.scale_encryption_image[0].name
 }
 
 data "ibm_is_image" "bootstrap_image" {
@@ -123,6 +128,11 @@ data "ibm_is_image" "storage_image" {
 data "ibm_is_image" "bare_metal_image" {
   name  = var.storage_bare_metal_osimage_name
 #  count = var.storage_type == "persistent" ? 1 : 0
+}
+
+data "ibm_is_image" "scale_encryption_image" {
+  name  = var.scale_encryption_vsi_osimage_name
+  count = local.scale_encryption_image_mapping_entry_found ? 0 : 1
 }
 
 locals {
@@ -156,3 +166,56 @@ locals {
   evaluation_storage_type_msg = "The evaluation storage type supports 12TB storage capacity."
   evaluation_storage_type_chk = regex("^${local.evaluation_storage_type_msg}$", (local.evaluation_storage_type_cnd ? local.evaluation_storage_type_msg : ""))
 }
+
+locals {
+  GKLM_server_count_msg = "Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5."
+
+  // GKLM Server count
+  validate_GKLM_server_count = (var.scale_encryption_enabled && var.scale_encryption_server_count >= 2 && var.scale_encryption_server_count <= 5) || !var.scale_encryption_enabled
+  validate_GKLM_server_count_chk = regex(
+    "^${local.GKLM_server_count_msg}$",
+  (local.validate_GKLM_server_count ? local.GKLM_server_count_msg : ""))
+
+  // GKLM password validation
+  validate_GKLM_pwd = (var.scale_encryption_enabled && length(var.scale_encryption_admin_password) >= 8 && length(var.scale_encryption_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.scale_encryption_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^.*[~@_+:].*$", var.scale_encryption_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.scale_encryption_admin_password)) || !var.scale_encryption_enabled
+  password_msg       = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
+  validate_GKLM_pwd_chk = regex(
+    "^${local.password_msg}$",
+  (local.validate_GKLM_pwd ? local.password_msg : ""))
+
+  // GKLM keypair validation
+  validate_GKLM_keypair  = (var.scale_encryption_enabled && var.scale_encryption_instance_key_pair == "")
+  keypair_msg            = "SSH-Keypair should not be empty when encryption is enabled."
+  gklm_keypair_check     = regex("^${local.keypair_msg}$", (local.validate_GKLM_keypair ? "" : local.keypair_msg ))
+  
+}
+
+locals {
+    schematics_ip = [
+      "169.45.235.176/28",
+      "169.55.82.128/27",
+      "169.60.115.32/27",
+      "169.63.150.144/28",
+      "169.62.1.224/28",
+      "169.62.53.64/27",
+      "150.238.230.128/27",
+      "169.63.254.64/28",
+      "169.47.104.160/28",
+      "169.61.191.64/27",
+      "169.60.172.144/28",
+      "169.62.204.32/27",
+      "158.175.106.64/27",
+      "158.175.138.176/28",
+      "141.125.79.160/28",
+      "141.125.142.96/27",
+      "158.176.111.64/27",
+      "158.176.134.80/28",
+      "149.81.123.64/27",
+      "149.81.135.64/28",
+      "158.177.210.176/28",
+      "158.177.216.144/28",
+      "161.156.138.80/28",
+      "159.122.111.224/27",
+      "161.156.37.160/27"
+    ]
+ }

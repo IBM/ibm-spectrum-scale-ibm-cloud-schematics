@@ -42,13 +42,3 @@ output "ssh_command" { # This command works only if you have your id_rsa in the 
   value = "ssh -J ubuntu@${module.bastion_attach_fip.floating_ip_addr} vpcuser@${module.bootstrap_vsi.vsi_private_ip}"
   description = "SSH command that can be used to login to bootstrap node to destroy the cluster. Use the same command to ssh to any of storage/compute node but update the respective ip of the nodes in place of bootstrap node ip.(Examples: ssh -J <ubuntu@bastionip> <vpcuser@ip of storage/compute node>)"
 }
-
-output "trusted_profile_id" {
-  value       = module.bootstrap_trusted_profile.trusted_profile_id
-  description = "IBM Cloud Trusted Profile ID."
-}
-
-output "schematics_controller_ip"{
-  value = [chomp(data.http.fetch_myip.body)]
-  description = "IP that has been used by the schematics side to ssh for bastion node to push the user input data file to create storage and compute cluster."
-}

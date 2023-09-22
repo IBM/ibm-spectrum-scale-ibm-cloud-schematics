@@ -62,8 +62,7 @@ resource "ibm_is_instance" "itself" {
   resource_group           = var.resource_grp_id
   keys                     = var.vsi_user_public_key
   user_data                = data.template_file.metadata_startup_script.rendered
-  metadata_service_enabled = true
-
+  
   boot_volume {
     name = format("%s-boot-vol", var.vsi_name_prefix)
   }
@@ -78,7 +77,7 @@ output "vsi_crn" {
 }
 
 output "vsi_private_ip" {
-  value = ibm_is_instance.itself.primary_network_interface[0].primary_ipv4_address
+  value = ibm_is_instance.itself.primary_network_interface[0].primary_ip.0.address
 }
 
 output "vsi_nw_id" {
