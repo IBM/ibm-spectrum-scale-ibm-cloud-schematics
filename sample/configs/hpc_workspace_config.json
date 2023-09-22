@@ -33,6 +33,13 @@
       ],
       "variablestore": [
         {
+          "name": "ibmcloud_api_key",
+          "value": "Please fill here",
+          "type": "string",
+          "secure": true,
+          "description": "This is the IBM Cloud API key for the IBM Cloud account where the IBM Storage Scale cluster needs to be deployed. For more information on how to create an API key, see [Managing user API keys](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui)."
+        },        
+        {
           "name": "vpc_region",
           "value": "Please fill here",
           "type": "string",
@@ -111,7 +118,7 @@
         },
         {
           "name": "bootstrap_osimage_name",
-          "value": "hpcc-scale-bootstrap-v2-1-2",
+          "value": "hpcc-scale-bootstrap-v2-2",
           "type": "string",
           "secure": false,
           "description": "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
@@ -205,7 +212,7 @@
           "value": "3",
           "type": "number",
           "secure": false,
-          "description": "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported."
+          "description": "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
         },
         {
           "name": "total_storage_cluster_instances",
@@ -216,10 +223,10 @@
         },
         {
           "name": "compute_vsi_osimage_name",
-          "value": "hpcc-scale5181-rhel79",
+          "value": "hpcc-scale5181-rhel86",
           "type": "string",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+          "description": "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
         },
         {
           "name": "storage_vsi_osimage_name",
@@ -269,6 +276,55 @@
           "type": "string",
           "secure": false,
           "description": "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image."
+        },
+        {
+          "name": "scale_encryption_enabled",
+          "value": "false",
+          "type": "bool",
+          "secure": false,
+          "description": "To enable the encryption for the filesystem. Select true or false."
+        },
+        {
+          "name": "scale_encryption_server_count",
+          "value": "2",
+          "type": "number",
+          "secure": false,
+          "description": "Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5."
+        },  
+        {
+          "name": "scale_encryption_vsi_osimage_name",
+          "value": "hpcc-scale-gklm-v4-1-1-7",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.6 stock image"
+        },
+        {
+          "name": "scale_encryption_vsi_profile",
+          "value": "bx2-2x8",
+          "type": "string",
+          "secure": false,
+          "description": "Specify the virtual server instance profile type name used to create the storage nodes. For more information, see Instance profiles"
+        },
+        {
+          "name": "scale_encryption_instance_key_pair",
+          "value": "",
+          "type": "string",
+          "secure": false,
+          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Scale Encryption keyserver nodes. Make sure that the SSH key is present in the same resource group and region where the keyservers are provisioned. The solution supports only one ssh key that can be attached to keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "scale_encryption_admin_password",
+          "value": "",
+          "type": "string",
+          "secure": true,
+          "description": "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.1.1?topic=manager-password-policy) to know more about password policy of GKLM."
+        },
+        {
+          "name": "scale_encryption_dns_domain",
+          "value": "gklmscale.com",
+          "type": "string",
+          "secure": false,
+          "description": "IBM Cloud DNS Services domain name to be used for the gklm cluster."
         }
       ]
     }

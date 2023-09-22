@@ -10,6 +10,15 @@ variable "TF_VERSION" {
   description = "The version of the Terraform engine that's used in the Schematics workspace."
 }
 
+variable "ibmcloud_api_key" {
+  type        = string
+  description = "This is the IBM Cloud API key for the IBM Cloud account where the IBM Storage Scale cluster needs to be deployed. For more information on how to create an API key, see [Managing user API keys](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui)."
+  validation {
+    condition     = var.ibmcloud_api_key != ""
+    error_message = "API key for IBM Cloud must be set."
+  }
+}
+
 variable "resource_group" {
   type        = string
   default     = "Default"
@@ -118,7 +127,7 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-1-2"
+  default     = "hpcc-scale-bootstrap-v2-2"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -228,10 +237,10 @@ variable "storage_vsi_profile" {
 variable "total_compute_cluster_instances" {
   type        = number
   default     = 3
-  description = "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported."
+  description = "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
   validation {
-    condition     = (var.total_compute_cluster_instances >= 3 && var.total_compute_cluster_instances <= 64)
-    error_message = "Specified input \"total_compute_cluster_instances\" must be in range(3, 64) Please provide the appropriate range of value."
+    condition = (var.total_compute_cluster_instances >= 3 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0 )
+    error_message = "Specified input \"total_compute_cluster_instances\" must be in range(3, 64) or it can be 0. Please provide the appropriate range of value."
   }
 }
 
@@ -243,8 +252,8 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5181-rhel79"
-  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+  default     = "hpcc-scale5181-rhel86"
+  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
     condition     = trimspace(var.compute_vsi_osimage_name) != ""
@@ -321,4 +330,47 @@ variable "storage_bare_metal_osimage_name" {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
     error_message = "Specified input \"storage_vsi_osimage_name\" is not valid."
   }
+}
+
+variable "scale_encryption_enabled" {
+  type        = bool
+  default     = false
+  description = "To enable the encryption for the filesystem. Select true or false"
+}
+
+variable "scale_encryption_vsi_osimage_name" {
+  type        = string
+  default     = "hpcc-scale-gklm-v4-1-1-7"
+  description = "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.6 stock image"
+}
+
+variable "scale_encryption_vsi_profile" {
+  type        = string
+  default     = "bx2-2x8"
+  description = "Specify the virtual server instance profile type name used to create the storage nodes. For more information, see Instance profiles"
+}
+
+variable "scale_encryption_server_count" {
+  type        = number
+  default     = 2
+  description = "Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5."
+}
+
+variable "scale_encryption_admin_password" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.1.1?topic=manager-password-policy) to know more about password policy of GKLM."
+}
+
+variable "scale_encryption_dns_domain" {
+  type        = string
+  default     = "gklmscale.com"
+  description = "IBM Cloud DNS Services domain name to be used for the gklm cluster."
+}
+
+variable "scale_encryption_instance_key_pair" {
+  type        = string
+  default     = ""
+  description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Scale Encryption keyserver nodes. Make sure that the SSH key is present in the same resource group and region where the keyservers are provisioned. The solution supports only one ssh key that can be attached to keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
 }

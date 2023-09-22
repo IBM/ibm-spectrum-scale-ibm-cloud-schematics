@@ -117,6 +117,27 @@ module "compute_dns_permitted_network" {
   depends_on      = [module.storage_dns_permitted_network]
 }
 
+module "scale_encryption_dns_zone" {
+  count          = var.scale_encryption_enabled == true ? 1 : 0
+  source         = "./resources/ibmcloud/network/dns_zone"
+  dns_zone_count = 1
+  dns_domain     = var.scale_encryption_dns_domain
+  dns_service_id = module.dns_service.resource_guid[0]
+  description    = "Private DNS Zone for Spectrum Scale GKLM DNS communication."
+  dns_label      = var.resource_prefix
+  depends_on     = [module.dns_service]
+}
+
+module "gklm_dns_permitted_network" {
+  count           = var.scale_encryption_enabled == true ? 1 : 0
+  source          = "./resources/ibmcloud/network/dns_permitted_network"
+  permitted_count = local.vpc_create_separate_subnets == true ? 1 : 0
+  instance_id     = module.dns_service.resource_guid[0]
+  zone_id         = length(module.scale_encryption_dns_zone) > 0 ? module.scale_encryption_dns_zone[0].dns_zone_id : null
+  vpc_crn         = module.vpc.vpc_crn
+  depends_on      = [module.storage_dns_permitted_network, module.compute_dns_permitted_network]
+}
+
 # FIXME: Multi-az, Add update resolver
 module "custom_resolver_storage_subnet" { # While creating the custom resolver, we are associating two subnet directly and we are not using the locations explict as there is some issue with that
   source                 = "./resources/ibmcloud/network/dns_custom_resolver"
@@ -126,10 +147,6 @@ module "custom_resolver_storage_subnet" { # While creating the custom resolver, 
   storage_subnet_crn     = module.storage_private_subnet.subnet_crn[0]
   #compute_subnet_crn    = module.compute_private_subnet.subnet_crn[0]
   compute_subnet_crn     = local.vpc_create_separate_subnets == true ? module.compute_private_subnet.subnet_crn[0] : module.storage_private_subnet.subnet_crn[0]
-}
-
-data "http" "fetch_myip"{
-  url = "http://ipv4.icanhazip.com"
 }
 
 module "bastion_security_group" {
@@ -148,11 +165,11 @@ module "bastion_sg_tcp_rule" {
   remote_ip_addr    = var.remote_cidr_blocks
 }
 
-module "schematics_sg_tcp_rule" {
+module "schematics_ip_sg_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_tcp_rule"
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
-  remote_ip_addr    = tolist([chomp(data.http.fetch_myip.response_body)])
+  remote_ip_addr    = local.schematics_ip
 }
 
 module "bastion_https_tcp_rule" {
@@ -242,25 +259,29 @@ module "bootstrap_ssh_keys" {
 }
 
 locals {
-  turn_on_init                = fileexists("/tmp/.schematics/success") ? false : true
-  bootstrap_path              = "/opt/IBM"
-  remote_gpfs_rpms_path       = format("%s/gpfs_cloud_rpms", local.bootstrap_path)
-  remote_ansible_path         = format("%s/ibm-spectrumscale-cloud-deploy", local.bootstrap_path)
-  remote_terraform_path       = format("%s/ibm-spectrum-scale-cloud-install/ibmcloud_scale_templates/sub_modules/instance_template", local.remote_ansible_path)
-  schematics_inputs_path      = "/tmp/.schematics/scale_terraform.auto.tfvars.json"
-  scale_cred_path             = "/tmp/.schematics/scale_credentials.json"
-  remote_inputs_path          = format("%s/terraform.tfvars.json", "/tmp")
-  remote_scale_cred_path      = format("%s/scale_credentials.json", "/tmp")
-  zones                       = jsonencode(var.vpc_availability_zones)
-  compute_private_subnets     = jsonencode(module.compute_private_subnet.subnet_id)
-  storage_private_subnets     = jsonencode(module.storage_private_subnet.subnet_id)
-  scale_cluster_resource_tags = jsonencode(local.tags)
+  turn_on_init                  = fileexists("/tmp/.schematics/success") ? false : true
+  bootstrap_path                = "/opt/IBM"
+  remote_gpfs_rpms_path         = format("%s/gpfs_cloud_rpms", local.bootstrap_path)
+  remote_ansible_path           = format("%s/ibm-spectrumscale-cloud-deploy", local.bootstrap_path)
+  remote_terraform_path         = format("%s/ibm-spectrum-scale-cloud-install/ibmcloud_scale_templates/sub_modules/instance_template", local.remote_ansible_path)
+  schematics_inputs_path        = "/tmp/.schematics/scale_terraform.auto.tfvars.json"
+  scale_cred_path               = "/tmp/.schematics/scale_credentials.json"
+  remote_inputs_path            = format("%s/terraform.tfvars.json", "/tmp")
+  remote_scale_cred_path        = format("%s/scale_credentials.json", "/tmp")
+  zones                         = jsonencode(var.vpc_availability_zones)
+  compute_private_subnets       = jsonencode(module.compute_private_subnet.subnet_id)
+  storage_private_subnets       = jsonencode(module.storage_private_subnet.subnet_id)
+  scale_cluster_resource_tags   = jsonencode(local.tags)
+  products                      = var.scale_encryption_enabled == false ? "scale" : "scale,gklm"
+  compute_node_count            = var.total_compute_cluster_instances
+  storage_node_count            = var.total_storage_cluster_instances
+  encryption_node_count         = var.scale_encryption_enabled ? var.scale_encryption_server_count : "0"
   scale_cloud_install_repo_url  = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_branch    = "5.1.8.1"
+  scale_cloud_install_branch    = "scale_hpc"
   scale_cloud_infra_repo_url    = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name   = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag    = "v2.7.0"
+  scale_cloud_infra_repo_branch = "scale_hpc"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -285,14 +306,12 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "compute_cluster_gui_username": "${var.compute_cluster_gui_username}",
     "compute_cluster_gui_password": "${var.compute_cluster_gui_password}",
     "compute_cluster_key_pair": "${var.compute_cluster_key_pair}",
-    "total_compute_cluster_instances": ${var.total_compute_cluster_instances},
     "compute_vsi_osimage_name": "${local.compute_osimage_name}",
     "compute_vsi_profile": "${var.compute_vsi_profile}",
     "using_rest_api_remote_mount": ${local.using_rest_api_remote_mount},
     "storage_cluster_gui_password": "${var.storage_cluster_gui_password}",
     "storage_cluster_gui_username": "${var.storage_cluster_gui_username}",
     "storage_cluster_key_pair": "${var.storage_cluster_key_pair}",
-    "total_storage_cluster_instances": "${var.total_storage_cluster_instances}",
     "storage_vsi_osimage_name": "${local.storage_osimage_name}",
     "storage_vsi_profile": "${var.storage_vsi_profile}",
     "storage_cluster_filesystem_mountpoint": "${var.storage_cluster_filesystem_mountpoint}",
@@ -312,54 +331,23 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "storage_bare_metal_osimage_id" : "${data.ibm_is_image.bare_metal_image.id}",
     "storage_bare_metal_server_profile" : "${var.storage_bare_metal_server_profile}",
     "storage_bare_metal_osimage_name" : "${var.storage_bare_metal_osimage_name}",
-    "storage_type" : "${var.storage_type}"
+    "storage_type" : "${var.storage_type}",
+    "scale_encryption_enabled" : "${var.scale_encryption_enabled}",
+    "scale_encryption_admin_password" : "${var.scale_encryption_enabled ? var.scale_encryption_admin_password : "null"}",
+    "gklm_vsi_osimage_name": "${var.scale_encryption_enabled ? local.scale_encryption_osimage_name : "null"}",
+    "gklm_vsi_profile": "${var.scale_encryption_enabled ? var.scale_encryption_vsi_profile : "null"}",
+    "gklm_vsi_osimage_id": "${var.scale_encryption_enabled ? local.scale_encryption_image_id : "null"}",
+    "gklm_instance_key_pair": "${var.scale_encryption_enabled ? var.scale_encryption_instance_key_pair : "null"}",
+    "gklm_instance_dns_service_id": "${var.scale_encryption_enabled ? module.dns_service.resource_guid[0] : "null"}",
+    "gklm_instance_dns_zone_id": "${var.scale_encryption_enabled ? module.scale_encryption_dns_zone[0].dns_zone_id : "null"}",
+    "gklm_instance_dns_domain": "${var.scale_encryption_enabled ? var.scale_encryption_dns_domain : "null"}",
+    "create_scale_cluster": true,
+    "total_compute_cluster_instances": ${local.compute_node_count},
+    "total_storage_cluster_instances": ${local.storage_node_count}, 
+    "total_gklm_instances": ${local.encryption_node_count}
 }
 EOT
   filename          = local.schematics_inputs_path
-}
-
-resource "local_sensitive_file" "prepare_scale_cred_input" {
-  content = <<EOT
-{
-    "ibm_customer_number": "${var.ibm_customer_number}"
-}
-EOT
-  filename          = local.scale_cred_path
-  count             = var.storage_type != "evaluation" ? 1 : 0
-}
-
-module "bootstrap_trusted_profile" {
-  source                      = "./resources/ibmcloud/security/iam/trusted_profile"
-  trusted_profile_name        = format("%s-bootstrap", var.resource_prefix)
-  trusted_profile_description = "Bootstrap trusted profile"
-}
-
-module "bootstrap_trusted_profile_is_policy" {
-  source                = "./resources/ibmcloud/security/iam/trusted_profile_is_policy"
-  trusted_profile_id    = module.bootstrap_trusted_profile.trusted_profile_id
-  trusted_profile_roles = ["Administrator"]
-  resource_group_id     = data.ibm_resource_group.itself.id
-}
-
-module "bootstrap_trusted_profile_dns_policy" {
-  source                = "./resources/ibmcloud/security/iam/trusted_profile_dns_policy"
-  trusted_profile_id    = module.bootstrap_trusted_profile.trusted_profile_id
-  trusted_profile_roles = ["Administrator","Manager"]
-  resource_group_id     = data.ibm_resource_group.itself.id
-}
-
-module "bootstrap_trusted_profile_vpc_policy" {
-  source                = "./resources/ibmcloud/security/iam/trusted_profile_vpc_policy"
-  trusted_profile_id    = module.bootstrap_trusted_profile.trusted_profile_id
-  trusted_profile_roles = ["Administrator","Bare Metal Advanced Network Operator","Bare Metal Console Admin"]
-  resource_group_id     = data.ibm_resource_group.itself.id
-}
-
-module "bootstrap_trusted_profile_resource_group_policy" {
-  source                = "./resources/ibmcloud/security/iam/trusted_profile_resource_group_policy"
-  trusted_profile_id    = module.bootstrap_trusted_profile.trusted_profile_id
-  trusted_profile_roles = ["Administrator"]
-  resource_group_id     = data.ibm_resource_group.itself.id
 }
 
 /*
@@ -383,13 +371,27 @@ module "bootstrap_vsi" {
   vsi_meta_private_key = module.bootstrap_ssh_keys.private_key_content
   vsi_meta_public_key  = module.bootstrap_ssh_keys.public_key_content
   tags                 = local.tags
-}
-
-module "bootstrap_link_profile" {
-  source                    = "./resources/ibmcloud/security/iam/trusted_profile_link"
-  trusted_profile_id        = module.bootstrap_trusted_profile.trusted_profile_id
-  target_vsi_crn            = module.bootstrap_vsi.vsi_crn
-  trusted_profile_link_name = format("%s-link-profile", var.resource_prefix)
+  depends_on = [
+    module.bastion_sg_tcp_rule,
+    module.schematics_ip_sg_tcp_rule,
+    module.bastion_https_tcp_rule,
+    module.bastion_sg_outbound_rule,
+    module.bastion_vsi,
+    module.bastion_attach_fip,
+    module.bootstrap_security_group,
+    module.bootstrap_sg_tcp_rule,
+    module.bootstrap_sg_outbound_rule,
+    module.bootstrap_ssh_keys,
+    module.bastion_proxy_ssh_keys,
+    module.storage_private_subnet,
+    module.compute_private_subnet,
+    module.dns_service,
+    module.storage_dns_zone,
+    module.storage_dns_permitted_network,
+    module.compute_dns_zone,
+    module.compute_dns_permitted_network,
+    module.custom_resolver_storage_subnet
+  ]
 }
 
 resource "time_sleep" "wait_60_seconds" {
@@ -397,7 +399,7 @@ resource "time_sleep" "wait_60_seconds" {
   depends_on      = [module.bootstrap_vsi]
 }
 
-resource "null_resource" "scale_entitlement_file_provisioner" {
+resource "null_resource" "entitlement_check" {
   count = var.storage_type != "evaluation" ? 1 : 0
   connection {
     type                = "ssh"
@@ -409,10 +411,17 @@ resource "null_resource" "scale_entitlement_file_provisioner" {
     bastion_private_key = module.bastion_proxy_ssh_keys.private_key_content
   }
 
-  provisioner "file" {
-    source      = local.scale_cred_path
-    destination = local.remote_scale_cred_path
+  provisioner "remote-exec" {
+    inline = [
+      "sudo python3 /opt/IBM/cloud_entitlement/entitlement_check.py --products ${local.products} --icns ${var.ibm_customer_number}"
+    ]
   }
+
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
+  depends_on = [module.bootstrap_vsi, module.bastion_attach_fip]
 }
 
 resource "null_resource" "scale_cluster_provisioner" {
@@ -424,6 +433,7 @@ resource "null_resource" "scale_cluster_provisioner" {
     bastion_host        = module.bastion_attach_fip.floating_ip_addr
     bastion_user        = "ubuntu"
     bastion_private_key = module.bastion_proxy_ssh_keys.private_key_content
+    timeout             = "60m"
   }
 
   provisioner "file" {
@@ -434,35 +444,51 @@ resource "null_resource" "scale_cluster_provisioner" {
   provisioner "remote-exec" {
     inline = [
       "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name} ]; then sudo git clone -b ${local.scale_cloud_install_branch} ${local.scale_cloud_install_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name}; fi",
-      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale ]; then sudo git clone -b ${local.scale_cloud_infra_repo_tag} ${local.scale_cloud_infra_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale; fi",
-      "sudo python3 /opt/IBM/ibm-spectrumscale-cloud-deploy/cloud_deploy/cloud_deployer.py ibmcloud --profile-id ${module.bootstrap_trusted_profile.trusted_profile_id} --schematics-input-file /tmp/terraform.tfvars.json"
+      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale ]; then sudo git clone -b ${local.scale_cloud_infra_repo_branch} ${local.scale_cloud_infra_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale; fi",
+      "sudo ln -fs /usr/local/bin/ansible-playbook /usr/bin/ansible-playbook",
+      "sudo cp ${local.remote_inputs_path} ${local.remote_terraform_path}",
+      "export IC_API_KEY=${var.ibmcloud_api_key} && sudo -E terraform -chdir=${local.remote_terraform_path} init && sudo -E terraform -chdir=${local.remote_terraform_path} apply -parallelism=${var.TF_PARALLELISM} -auto-approve"
     ]
   }
-  depends_on = [module.bootstrap_vsi, module.bastion_attach_fip, time_sleep.wait_60_seconds, local_sensitive_file.prepare_scale_vsi_input, local_sensitive_file.prepare_scale_cred_input]
+  
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
+  depends_on = [
+    module.bootstrap_vsi,
+    module.bastion_attach_fip,
+    time_sleep.wait_60_seconds,
+    local_sensitive_file.prepare_scale_vsi_input
+  ]
 }
 
-data "ibm_iam_auth_token" "token" {}
-
-resource "null_resource" "delete_schematics_ingress_security_rule" {
-  provisioner "local-exec" {
-    environment = {
-      REFRESH_TOKEN       = data.ibm_iam_auth_token.token.iam_refresh_token
-      REGION              = var.vpc_region
-      SECURITY_GROUP      = module.bastion_security_group.sec_group_id
-      SECURITY_GROUP_RULE = module.schematics_sg_tcp_rule.security_rule_id[0]
-    }
-    command     = <<EOT
-          echo $SECURITY_GROUP
-          echo $SECURITY_GROUP_RULE
-          TOKEN=$(
-            echo $(
-              curl -X POST "https://iam.cloud.ibm.com/identity/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=refresh_token&refresh_token=$REFRESH_TOKEN" -u bx:bx
-              ) | jq  -r .access_token
-          )
-          curl -X DELETE "https://$REGION.iaas.cloud.ibm.com/v1/security_groups/$SECURITY_GROUP/rules/$SECURITY_GROUP_RULE?version=2021-08-03&generation=2" -H "Authorization: $TOKEN"
-        EOT
+resource "null_resource" "scale_cluster_destroyer" {
+  triggers = {
+    conn_host                  = module.bootstrap_vsi.vsi_private_ip
+    conn_private_key           = module.bootstrap_ssh_keys.private_key_content
+    conn_bastion_host          = module.bastion_attach_fip.floating_ip_addr
+    conn_bastion_private_key   = module.bastion_proxy_ssh_keys.private_key_content
+    conn_ibmcloud_api_key      = var.ibmcloud_api_key
+    conn_remote_terraform_path = local.remote_terraform_path
   }
-  depends_on = [
-    module.bootstrap_vsi, module.bootstrap_link_profile, null_resource.scale_cluster_provisioner, time_sleep.wait_60_seconds
-  ]
+
+  connection {
+    type                = "ssh"
+    host                = self.triggers.conn_host
+    user                = "vpcuser"
+    private_key         = self.triggers.conn_private_key
+    bastion_host        = self.triggers.conn_bastion_host
+    bastion_user        = "ubuntu"
+    bastion_private_key = self.triggers.conn_bastion_private_key
+    timeout             = "60m"
+  }
+
+  provisioner "remote-exec" {
+    when       = destroy
+    on_failure = fail
+    inline = [
+      "export IC_API_KEY=${self.triggers.conn_ibmcloud_api_key} && sudo -E terraform -chdir=${self.triggers.conn_remote_terraform_path} destroy -auto-approve"
+    ]
+  }
 }
