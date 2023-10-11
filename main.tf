@@ -278,10 +278,10 @@ locals {
   encryption_node_count         = var.scale_encryption_enabled ? var.scale_encryption_server_count : "0"
   scale_cloud_install_repo_url  = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_branch    = "scale_hpc"
+  scale_cloud_install_repo_tag  = "v2.2.0"
   scale_cloud_infra_repo_url    = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name   = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_branch = "scale_hpc"
+  scale_cloud_infra_repo_tag    = "ibmcloud_v2.2.0"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -443,8 +443,8 @@ resource "null_resource" "scale_cluster_provisioner" {
 
   provisioner "remote-exec" {
     inline = [
-      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name} ]; then sudo git clone -b ${local.scale_cloud_install_branch} ${local.scale_cloud_install_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name}; fi",
-      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale ]; then sudo git clone -b ${local.scale_cloud_infra_repo_branch} ${local.scale_cloud_infra_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale; fi",
+      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name} ]; then sudo git clone -b ${local.scale_cloud_install_repo_tag} ${local.scale_cloud_install_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_install_repo_name}; fi",
+      "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale ]; then sudo git clone -b ${local.scale_cloud_infra_repo_tag} ${local.scale_cloud_infra_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale; fi",
       "sudo ln -fs /usr/local/bin/ansible-playbook /usr/bin/ansible-playbook",
       "sudo cp ${local.remote_inputs_path} ${local.remote_terraform_path}",
       "export IC_API_KEY=${var.ibmcloud_api_key} && sudo -E terraform -chdir=${local.remote_terraform_path} init && sudo -E terraform -chdir=${local.remote_terraform_path} apply -parallelism=${var.TF_PARALLELISM} -auto-approve"
