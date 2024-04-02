@@ -19,7 +19,7 @@ variable "dns_label" {}
 resource "ibm_dns_zone" "itself" {
   count       = var.dns_zone_count
   name        = var.dns_domain
-  instance_id = var.dns_service_id
+  instance_id = var.dns_service_id[0]
   description = var.description
   label       = var.dns_label
 }

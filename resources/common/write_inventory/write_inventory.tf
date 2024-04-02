@@ -30,7 +30,7 @@ resource "local_file" "itself" {
 {
     "cloud_platform": ${var.cloud_platform},
     "resource_prefix": ${var.resource_prefix},
-    "vpc_region": ${var.vpc_region},
+    "vpc_region": ${local.vpc_region},
     "vpc_availability_zones": ${var.vpc_availability_zones},
     "scale_version": ${var.scale_version},
     "compute_cluster_filesystem_mountpoint": ${var.compute_cluster_filesystem_mountpoint},

@@ -13,6 +13,7 @@ terraform {
 variable "vsi_name_prefix" {}
 variable "vpc_id" {}
 variable "vsi_subnet_id" {}
+variable "comp_subnet_id" {}
 variable "vpc_zone" {}
 variable "vsi_security_group" {}
 variable "vsi_profile" {}
@@ -21,6 +22,7 @@ variable "vsi_user_public_key" {}
 variable "vsi_meta_public_key" {}
 variable "resource_grp_id" {}
 variable "tags" {}
+variable "enable_sec_interface" {}
 
 
 data "template_file" "metadata_startup_script" {
@@ -49,6 +51,16 @@ resource "ibm_is_instance" "itself" {
   primary_network_interface {
     subnet          = var.vsi_subnet_id
     security_groups = var.vsi_security_group
+  }
+
+  dynamic "network_interfaces" {
+    for_each = var.enable_sec_interface == true ? [1] : []
+    content {
+      name              = "bastion-eth1"
+      subnet            = var.comp_subnet_id
+      allow_ip_spoofing = false
+      security_groups   = var.vsi_security_group
+    }
   }
 
   vpc            = var.vpc_id

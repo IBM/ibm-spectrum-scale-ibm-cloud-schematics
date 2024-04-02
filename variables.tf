@@ -25,9 +25,40 @@ variable "resource_group" {
   description = "Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui)."
 }
 
-variable "vpc_region" {
+variable "vpc_name" {
   type        = string
-  description = "Name of the IBM Cloud region where the resources need to be provisioned.(Examples: us-east, us-south, etc.) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
+  description = "Name of an existing VPC in which the cluster resources will be deployed. If no value is given, then a new VPC will be provisioned for the cluster. [Learn more](https://cloud.ibm.com/docs/vpc). If your VPC has an existing DNS service ensure the name of the DNS Service ends with prefix scale-scaledns [Example: cluster-name-scale-scaledns]"
+  default     = null
+}
+
+variable "vpc_compute_subnet" {
+  type        = string
+  description = "Name of an existing subnet for compute nodes. If no value is given, a new subnet will be created"
+  default     = null
+}
+
+variable "vpc_storage_subnet" {
+  type        = string
+  description = "Name of an existing subnet for storage nodes. If no value is given, a new subnet will be created"
+  default     = null
+}
+
+variable "vpc_protocol_subnet" {
+  type        = string
+  description = "Name of an existing subnet for protocol nodes. If no value is given, a new subnet will be created"
+  default     = null
+}
+
+variable "vpc_dns_service_name" {
+  type        = string
+  description = "Name of an existing dns resource instance. If no value is given, a new dns resource instance will be created"
+  default     = null
+}
+
+variable "vpc_dns_custom_resolver_name" {
+  type        = string
+  description = "Name of an existing dns custom resolver. If no value is given, a new dns custom resolver will be created"
+  default     = null
 }
 
 variable "vpc_availability_zones" {
@@ -53,7 +84,7 @@ variable "vpc_cidr_block" {
 
 variable "vpc_storage_cluster_private_subnets_cidr_blocks" {
   type        = list(string)
-  default     = ["10.241.1.0/24"]
+  default     = ["10.241.16.0/24"]
   description = "The CIDR block that's required for the creation of the storage cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with any on-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the storage subnet."
   validation {
     condition     = length(var.vpc_storage_cluster_private_subnets_cidr_blocks) <= 1
@@ -63,7 +94,7 @@ variable "vpc_storage_cluster_private_subnets_cidr_blocks" {
 
 variable "vpc_compute_cluster_private_subnets_cidr_blocks" {
   type        = list(string)
-  default     = ["10.241.0.0/24"]
+  default     = ["10.241.0.0/20"]
   description = "The CIDR block that's required for the creation of the compute cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with anyon-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the compute subnet."
   validation {
     condition     = length(var.vpc_compute_cluster_private_subnets_cidr_blocks) <= 1
@@ -117,17 +148,17 @@ variable "bastion_vsi_profile" {
 }
 
 variable "bastion_key_pair" {
-  type        = string
+  type        = list(string)
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Make Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
   validation {
-    condition = can(regex("^[a-z]+(-[a-z0-9]+)*$", var.bastion_key_pair))
-    error_message = "Our automation code supports only one ssh key to be attached to the bastion node."
+    condition = alltrue([for key in var.bastion_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
+    error_message = "Our automation code supports multi ssh keys and should follow above patteren to be attached to the bastion node."
   }
 }
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-2"
+  default     = "hpcc-scale-bootstrap-v2-4"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -155,7 +186,7 @@ variable "ibm_customer_number" {
 variable "compute_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
-  description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
+  description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
 
   validation {
     condition     = can(regex("^\\/[a-z0-9A-Z-_]+\\/[a-z0-9A-Z-_]+$", var.compute_cluster_filesystem_mountpoint))
@@ -166,7 +197,7 @@ variable "compute_cluster_filesystem_mountpoint" {
 variable "storage_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
-  description = "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
+  description = "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
   validation {
     condition     = can(regex("^\\/[a-z0-9A-Z-_]+\\/[a-z0-9A-Z-_]+$", var.storage_cluster_filesystem_mountpoint))
     error_message = "Specified value for \"storage_cluster_filesystem_mountpoint\" is not valid (valid: /gpfs/fs1)."
@@ -176,7 +207,7 @@ variable "storage_cluster_filesystem_mountpoint" {
 variable "filesystem_block_size" {
   type        = string
   default     = "4M"
-  description = "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
+  description = "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
 
   validation {
     condition     = can(regex("^256K$|^512K$|^1M$|^2M$|^4M$|^8M$|^16M$", var.filesystem_block_size))
@@ -195,12 +226,9 @@ variable "compute_vsi_profile" {
 }
 
 variable "compute_cluster_key_pair" {
-  type        = string
+  type        = list(string)
+  default     = null
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
-  validation {
-    condition = can(regex("^[a-z]+(-[a-z0-9]+)*$", var.compute_cluster_key_pair))
-    error_message = "Our automation code supports only one ssh key to be attached to the compute node."
-  }
 }
 
 variable "compute_cluster_gui_username" {
@@ -239,7 +267,7 @@ variable "total_compute_cluster_instances" {
   default     = 3
   description = "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
   validation {
-    condition = (var.total_compute_cluster_instances >= 3 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0 )
+    condition = (var.total_compute_cluster_instances >= 0 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0 )
     error_message = "Specified input \"total_compute_cluster_instances\" must be in range(3, 64) or it can be 0. Please provide the appropriate range of value."
   }
 }
@@ -252,8 +280,8 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5181-rhel86"
-  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+  default     = "hpcc-scale5192-rhel88"
+  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
     condition     = trimspace(var.compute_vsi_osimage_name) != ""
@@ -263,8 +291,8 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5181-rhel86"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.6 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
+  default     = "hpcc-scale5192-rhel88"
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
     condition     = trimspace(var.storage_vsi_osimage_name) != ""
@@ -273,11 +301,11 @@ variable "storage_vsi_osimage_name" {
 }
 
 variable "storage_cluster_key_pair" {
-  type        = string
+  type        = list(string)
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one SSH key that can be attached to the storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
   validation {
-    condition = can(regex("^[a-z]+(-[a-z0-9]+)*$", var.storage_cluster_key_pair))
-    error_message = "Our automation code supports only one ssh key to be attached to the storage node."
+    condition = alltrue([for key in var.storage_cluster_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
+    error_message = "Our automation code supports multi ssh keys and should follow above patteren to be attached to the storage node."
   }
 }
 
@@ -324,8 +352,8 @@ variable "storage_bare_metal_server_profile" {
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-6-minimal-amd64-5"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image."
+  default     = "ibm-redhat-8-8-minimal-amd64-3"
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
     error_message = "Specified input \"storage_vsi_osimage_name\" is not valid."
@@ -340,8 +368,8 @@ variable "scale_encryption_enabled" {
 
 variable "scale_encryption_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale-gklm-v4-1-1-7"
-  description = "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.6 stock image"
+  default     = "hpcc-scale-gklm-v4-2-0-3"
+  description = "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.8 stock image"
 }
 
 variable "scale_encryption_vsi_profile" {
@@ -360,7 +388,7 @@ variable "scale_encryption_admin_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.1.1?topic=manager-password-policy) to know more about password policy of GKLM."
+  description = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.2?topic=manager-password-policy) to know more about password policy of GKLM."
 }
 
 variable "scale_encryption_dns_domain" {
@@ -370,7 +398,152 @@ variable "scale_encryption_dns_domain" {
 }
 
 variable "scale_encryption_instance_key_pair" {
-  type        = string
-  default     = ""
+  type        = list(string)
+  default     = null
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Scale Encryption keyserver nodes. Make sure that the SSH key is present in the same resource group and region where the keyservers are provisioned. The solution supports only one ssh key that can be attached to keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+}
+
+variable "vpc_protocol_cluster_private_subnets_cidr_blocks" {
+  type        = list(string)
+  default     = ["10.241.17.0/24"]
+  description = "The CIDR block that's required for the creation of the protocol nodes private subnet"
+  validation {
+    condition     = length(var.vpc_protocol_cluster_private_subnets_cidr_blocks) <= 1
+    error_message = "Our Automation supports only a single AZ to deploy resources. Provide one CIDR range of subnet creation."
+  }
+}
+
+variable "vpc_protocol_cluster_dns_domain" {
+  type        = string
+  default     = "cesscale.com"
+  description = "IBM Cloud DNS Services domain name to be used for the protocol nodes."
+}
+
+variable "protocol_vsi_profile" {
+  type        = string
+  default     = "cx2-32x64"
+  description = "The virtual server instance profile type name to be used to create the protocol cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+  validation {
+    condition     = can(regex("^[b|c|m]x[0-9]+d?-[0-9]+x[0-9]+", var.protocol_vsi_profile))
+    error_message = "Specified profile must be a valid IBM Cloud VPC GEN2 profile name [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+  }
+}
+
+variable "total_protocol_cluster_instances" {
+  type        = number
+  default     = 2
+  description = "Total number of protocol nodes that you need to provision. A minimum of 2 nodes and a maximum of 16 nodes are supported"
+  validation {
+    condition = (var.total_protocol_cluster_instances >= 0 && var.total_protocol_cluster_instances <= 16 || var.total_protocol_cluster_instances == 0 )
+    error_message = "Specified input \"total_protocol_cluster_instances\" must be in range(0, 16) or it can be 0. Please provide the appropriate range of value."
+  }
+  
+}
+
+variable "filesets" {
+  type = list(object({
+    mount_path = string,
+    size       = number
+  }))
+  default     = [{ mount_path = "/mnt/binaries", size = 0 }, { mount_path = "/mnt/data", size = 0 }]
+  description = "Mount point(s) and size(s) in GB of file share(s) that can be used to customize shared file storage layout. Provide the details for up to 5 file shares."
+  validation {
+    condition     = length(var.filesets) <= 5
+    error_message = "The custom file share count \"filesets\" must be less than or equal to 5."
+  }
+  validation {
+    condition     = length([for mounts in var.filesets : mounts.mount_path]) == length(toset([for mounts in var.filesets : mounts.mount_path]))
+    error_message = "Mount path values should not be duplicated."
+  }
+}
+
+# Client Cluster Variables
+
+variable "total_client_cluster_instances" {
+  type        = number
+  default     = 2
+  description = "Total number of client cluster instances that you need to provision. A minimum of 2 nodes and a maximum of 64 nodes are supported"
+}
+
+variable "client_vsi_osimage_name" {
+  type        = string
+  default     = "ibm-redhat-8-8-minimal-amd64-3"
+  description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
+}
+
+variable "client_vsi_profile" {
+  type        = string
+  default     = "cx2-2x4"
+  description = "The virtual server instance profile type name to be used to create the client cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+  validation {
+    condition     = can(regex("^[b|c|m]x[0-9]+d?-[0-9]+x[0-9]+", var.client_vsi_profile))
+    error_message = "Specified profile must be a valid IBM Cloud VPC GEN2 profile name [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+  }
+}
+
+variable "vpc_client_cluster_dns_domain" {
+  type        = string
+  default     = "clntscale.com"
+  description = "IBM Cloud DNS domain name to be used for client cluster."
+}
+
+variable "client_cluster_key_pair" {
+  type        = list(string)
+  default     = null
+  description = "Name of the SSH keys configured in your IBM Cloud account that is used to establish a connection to the Client cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+}
+
+variable "ldap_basedns" {
+  type        = string
+  default     = "null"
+  description = "Base DNS of LDAP Server. If none given the LDAP feature will not be enabled."
+}
+
+variable "ldap_server" {
+  type        = string
+  default     = "null"
+  description = "IP of existing LDAP server. If none given a new ldap server will be created"
+}
+
+variable "ldap_admin_password" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Password that is used for performing administrative operations for LDAP.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. "
+}
+
+variable "ldap_user_name" {
+  type        = string
+  sensitive   = true
+  default     = "null"
+  description = "Custom LDAP User for performing cluster operations. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
+  validation {
+    condition = var.ldap_user_name == null || (try(length(var.ldap_user_name), 0) >= 4 && try(length(var.ldap_user_name), 0) <= 32)
+    error_message = "Specified input for \"ldap_user_name\" is not valid. username should be greater or equal to 4 letters."
+  }
+}
+
+variable "ldap_user_password" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "LDAP User Password that is used for performing operations on the cluster.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username."
+}
+
+variable "ldap_instance_key_pair" {
+  type        = list(string)
+  default     = null
+  description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the LDAP Server. Make sure that the SSH key is present in the same resource group and region where the LDAP Servers are provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+}
+
+variable "ldap_vsi_profile" {
+  type        = string
+  default     = "cx2-2x4"
+  description = "Profile to be used for LDAP virtual server instance."
+}
+
+variable "ldap_vsi_osimage_name" {
+  type        = string
+  default     = "ibm-ubuntu-22-04-3-minimal-amd64-1"
+  description = "Image name to use for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature. "
 }
