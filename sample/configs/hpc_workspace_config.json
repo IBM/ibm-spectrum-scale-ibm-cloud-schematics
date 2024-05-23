@@ -1,5 +1,5 @@
 {
-  "name": "hpcc-scale-test",
+  "name": "hpcc-storage-scale-workspace",
   "type": [
     "terraform_v1.4"
   ],
@@ -33,298 +33,460 @@
       ],
       "variablestore": [
         {
-          "name": "ibmcloud_api_key",
+          "name": "ibmcloud_api_key" ,
+          "type":  "string",
           "value": "Please fill here",
-          "type": "string",
           "secure": true,
-          "description": "This is the IBM Cloud API key for the IBM Cloud account where the IBM Storage Scale cluster needs to be deployed. For more information on how to create an API key, see [Managing user API keys](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui)."
-        },        
-        {
-          "name": "vpc_region",
-          "value": "Please fill here",
-          "type": "string",
-          "secure": false,
-          "description": "Name of the IBM Cloud region where the resources need to be provisioned.(Examples: us-east, us-south, etc.) For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
-        },
-        {
-          "name": "vpc_availability_zones",
-          "value": "Please fill here",
-          "type": "list(string)",
-          "secure": false,
-          "description": "IBM Cloud availability zone names within the selected region where the Storage Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
-        },
-        {
-          "name": "resource_prefix",
-          "value": "storage-scale",
-          "type": "string",
-          "secure": false,
-          "description": "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Storage Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64."
+          "description":  "This is the IBM Cloud API key for the IBM Cloud account where the IBM Storage Scale cluster needs to be deployed. For more information on how to create an API key, see [Managing user API keys](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui)."
         },
         {
           "name": "resource_group",
+          "type":  "string",
           "value": "Default",
-          "type": "string",
           "secure": false,
-          "description":"Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui)."
+          "description":  "Resource group name from your IBM Cloud account where the VPC resources should be deployed. For more information, see[Managing resource groups](https://cloud.ibm.com/docs/account?topic=account-rgs&interface=ui)."
         },
         {
-          "name": "vpc_cidr_block",
-          "value": "[\"10.241.0.0/18\"]",
-          "type": "list(string)",
+          "name": "vpc_name",
+          "type":  "string",
+          "value": "__NULL__",
           "secure": false,
-          "description": "IBM Cloud VPC address prefixes that are needed for VPC creation. Since the solution supports only a single availability zone, provide one CIDR address prefix for VPC creation. For more information, see [Bring your own subnet](https://cloud.ibm.com/docs/vpc?topic=vpc-configuring-address-prefixes)."
+          "description":  "Name of an existing VPC in which the cluster resources will be deployed. If no value is given, then a new VPC will be provisioned for the cluster. [Learn more](https://cloud.ibm.com/docs/vpc). If your VPC has an existing DNS service ensure the name of the DNS Service ends with prefix scale-scaledns [Example: cluster-name-scale-scaledns]"
+        },
+        {
+          "name": "vpc_compute_subnet", 
+          "type":  "string",
+          "value": "__NULL__",
+          "secure": false,
+          "description":  "Name of an existing subnet for compute nodes. If no value is given, a new subnet will be created"
+          
+        },
+        {
+          "name": "vpc_storage_subnet", 
+          "type":  "string",
+          "value": "__NULL__",
+          "secure": false,
+          "description":  "Name of an existing subnet for storage nodes. If no value is given, a new subnet will be created"
+        },
+        {
+          "name": "vpc_protocol_subnet", 
+          "type":  "string",
+          "value": "__NULL__",
+          "secure": false,
+          "description":  "Name of an existing subnet for protocol nodes. If no value is given, a new subnet will be created"
+        },
+        {
+          "name": "vpc_dns_service_name",
+          "type":  "string",
+          "value": "__NULL__",
+          "secure": false,
+          "description":  "Name of an existing dns resource instance. If no value is given, a new dns resource instance will be created"
+        },
+        {
+          "name": "vpc_dns_custom_resolver_name", 
+          "type":  "string",
+          "value": "__NULL__",
+          "secure": false,
+          "description":  "Name of an existing dns custom resolver. If no value is given, a new dns custom resolver will be created"
+        },
+        {
+          "name": "vpc_availability_zones", 
+          "type":  "list(string)",
+          "value": "[\"Please fill here\"]",
+          "secure": false,
+          "description":  "IBM Cloud availability zone names within the selected region where the Storage Scale cluster should be deployed.For the current release, the solution supports only a single availability zone.For more information, see [Region and data center locations for resource deployment](https://cloud.ibm.com/docs/overview?topic=overview-locations)."
+        },
+        {
+          "name": "resource_prefix", 
+          "type":  "string",
+          "value": "storage-scale",
+          "secure": false,
+          "description":  "Prefix that is used to name the IBM Cloud resources that are provisioned to build the Storage Scale cluster. Make sure that the prefix is unique since you cannot create multiple resources with the same name. The maximum length of supported characters is 64."
+        },
+        {
+          "name": "vpc_cidr_block", 
+          "type":  "list(string)",
+          "value": "[\"10.241.0.0/18\"]",
+          "secure": false,
+          "description":  "IBM Cloud VPC address prefixes that are needed for VPC creation. Since the solution supports only a single availability zone, provide one CIDR address prefix for VPC creation. For more information, see [Bring your own subnet](https://cloud.ibm.com/docs/vpc?topic=vpc-configuring-address-prefixes)."
         },
         {
           "name": "vpc_storage_cluster_private_subnets_cidr_blocks",
-          "value": "[\"10.241.1.0/24\"]",
-          "type": "list(string)",
+          "type":  "list(string)",
+          "value": "[\"10.241.16.0/24\"]",
           "secure": false,
-          "description": "The CIDR block that's required for the creation of the storage cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with any on-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the storage subnet."
+          "description":  "The CIDR block that's required for the creation of the storage cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with any on-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the storage subnet."
         },
         {
-          "name": "vpc_compute_cluster_private_subnets_cidr_blocks",
-          "value": "[\"10.241.0.0/24\"]",
-          "type": "list(string)",
+          "name": "vpc_compute_cluster_private_subnets_cidr_blocks", 
+          "type":  "list(string)",
+          "value": "[\"10.241.0.0/20\"]",
           "secure": false,
-          "description": "The CIDR block that's required for the creation of the compute cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with anyon-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the compute subnet."
+          "description":  "The CIDR block that's required for the creation of the compute cluster private subnet. Modify the CIDR block if it has already been reserved or used for other applications within the VPC or conflicts with anyon-premises CIDR blocks when using a hybrid environment. Provide only one CIDR block for the creation of the compute subnet."
         },
         {
           "name": "vpc_compute_cluster_dns_domain",
+          "type":  "string",
           "value": "compscale.com",
-          "type": "string",
           "secure": false,
-          "description": "IBM Cloud DNS Services domain name to be used for the compute cluster.."
+          "description":  "IBM Cloud DNS Services domain name to be used for the compute cluster."
         },
         {
           "name": "vpc_storage_cluster_dns_domain",
+          "type":  "string",
           "value": "strgscale.com",
-          "type": "string",
           "secure": false,
-          "description": "IBM Cloud DNS Services domain name to be used for the storage cluster."
+          "description":  "IBM Cloud DNS Services domain name to be used for the storage cluster."
         },
         {
-          "name": "remote_cidr_blocks",
-          "value": "Please fill here",
-          "type": "list(string)",
+          "name": "remote_cidr_blocks", 
+          "type":  "list(string)",
+          "value": "[\"Please fill here\"]",
           "secure": false,
-          "description": "Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
+          "description":  "Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
         },
         {
-          "name": "bastion_osimage_name",
+          "name": "bastion_osimage_name", 
+          "type":  "string",
           "value": "ibm-ubuntu-20-04-3-minimal-amd64-2",
-          "type": "string",
           "secure": false,
-          "description": "Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
+          "description":  "Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
         },
         {
-          "name": "bootstrap_osimage_name",
-          "value": "hpcc-scale-bootstrap-v2-2",
-          "type": "string",
-          "secure": false,
-          "description": "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
-        },
-        {
-          "name": "bastion_vsi_profile",
+          "name": "bastion_vsi_profile", 
+          "type":  "string",
           "value": "cx2-2x4",
-          "type": "string",
           "secure": false,
-          "description": "The virtual server instance profile type name to be used to create the Bastion node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+          "description":  "The virtual server instance profile type name to be used to create the Bastion node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
         },
         {
-          "name": "bastion_key_pair",
-          "value": "Please fill here",
-          "type": "string",
+          "name": "bastion_key_pair", 
+          "type":  "list(string)",
+          "value": "[\"Please fill here\"]",
           "secure": false,
-          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Make Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+          "description":  "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Make Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
         },
         {
-          "name": "bootstrap_vsi_profile",
+          "name": "bootstrap_osimage_name", 
+          "type":  "string",
+          "value": "hpcc-scale-bootstrap-v2-3",
+          "secure": false,
+          "description":  "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
+        },
+        {
+          "name": "bootstrap_vsi_profile", 
+          "type":  "string",
           "value": "bx2-8x32",
-          "type": "string",
           "secure": false,
-          "description": "The virtual server instance profile type name to be used to create the Bootstrap node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+          "description":  "The virtual server instance profile type name to be used to create the Bootstrap node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
         },
         {
-          "name": "ibm_customer_number",
+          "name": "ibm_customer_number", 
+          "type":  "string",
           "value": "",
-          "type": "string",
           "secure": true,
-          "description": "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
+          "description":  "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
         },
         {
-          "name": "compute_cluster_filesystem_mountpoint",
+          "name": "compute_cluster_filesystem_mountpoint", 
+          "type":  "string",
           "value": "/gpfs/fs1",
-          "type": "string",
           "secure": false,
-          "description": "Storage Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
+          "description":  "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
         },
         {
-          "name": "storage_cluster_filesystem_mountpoint",
+          "name": "storage_cluster_filesystem_mountpoint", 
+          "type":  "string",
           "value": "/gpfs/fs1",
-          "type": "string",
           "secure": false,
-          "description": "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=system-mounting-remote-gpfs-file)."
+          "description":  "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
         },
         {
-          "name": "filesystem_block_size",
+          "name": "filesystem_block_size", 
+          "type":  "string",
           "value": "4M",
-          "type": "string",
           "secure": false,
-          "description": "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.8?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
+          "description":  "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
         },
         {
           "name": "compute_vsi_profile",
+          "type":  "string",
           "value": "bx2-2x8",
-          "type": "string",
           "secure": false,
-          "description": "The virtual server instance profile type name to be used to create the compute cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+          "description":  "The virtual server instance profile type name to be used to create the compute cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
         },
         {
-          "name": "compute_cluster_key_pair",
+          "name": "compute_cluster_key_pair", 
+          "type":  "list(string)",
+          "value": "[]",
+          "secure": false,
+          "description":  "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "compute_cluster_gui_username", 
+          "type":  "string",
           "value": "Please fill here",
-          "type": "string",
-          "secure": false,
-          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+          "secure": true,
+          "description":  "GUI username to perform system management and monitoring tasks on the compute cluster. The Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
         },
         {
-          "name": "compute_cluster_gui_username",
+          "name": "compute_cluster_gui_password", 
+          "type":  "string",
           "value": "Please fill here",
-          "type": "string",
-          "secure": false,
-          "description": "GUI username to perform system management and monitoring tasks on the compute cluster. The Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
+          "secure": true,
+          "description":  "Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username."
         },
         {
-          "name": "compute_cluster_gui_password",
-          "value": "Please fill here",
-          "type": "string",
-          "secure": false,
-          "description": "Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username."
-        },
-        {
-          "name": "storage_vsi_profile",
+          "name": "storage_vsi_profile", 
+          "type":  "string",
           "value": "bx2d-32x128",
-          "type": "string",
           "secure": false,
-          "description": "Specify the virtual server instance profile type name to be used to create the Storage nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+          "description":  "Specify the virtual server instance profile type name to be used to create the Storage nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
         },
         {
-          "name": "total_compute_cluster_instances",
+          "name": "total_compute_cluster_instances", 
+          "type":  "number",
           "value": "3",
-          "type": "number",
           "secure": false,
-          "description": "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
+          "description":  "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
         },
         {
           "name": "total_storage_cluster_instances",
+          "type":  "number",
           "value": "4",
-          "type": "number",
           "secure": false,
-          "description": "Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent."
+          "description":  "Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent."
         },
         {
           "name": "compute_vsi_osimage_name",
-          "value": "hpcc-scale5181-rhel86",
-          "type": "string",
+          "type":  "string",
+          "value": "hpcc-scale5190-rhel88",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.6 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+          "description":  "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
         },
         {
           "name": "storage_vsi_osimage_name",
-          "value": "hpcc-scale5181-rhel86",
-          "type": "string",
+          "type":  "string",
+          "value": "hpcc-scale5190-rhel88",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.6 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
+          "description":  "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
         },
         {
-          "name": "storage_cluster_key_pair",
-          "value": "Please fill here",
-          "type": "string",
+          "name": "storage_cluster_key_pair", 
+          "type":  "list(string)",
+          "value": "[\"Please fill here\"]",
           "secure": false,
-          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one SSH key that can be attached to the storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+          "description":  "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one SSH key that can be attached to the storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
         },
         {
-          "name": "storage_cluster_gui_username",
+          "name": "storage_cluster_gui_username", 
+          "type":  "string",
           "value": "Please fill here",
-          "type": "string",
-          "secure": false,
-          "description": "GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
+          "secure": true,
+          "description":  "GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
         },
         {
-          "name": "storage_cluster_gui_password",
+          "name": "storage_cluster_gui_password", 
+          "type":  "string",
           "value": "Please fill here",
-          "type": "string",
-          "secure": false,
-          "description": "Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username."
+          "secure": true,
+          "description":  "Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username."
         },
         {
           "name": "storage_type",
+          "type":  "string",
           "value": "scratch",
-          "type": "string",
           "secure": false,
-          "description": "Select the Storage Scale file system deployment method. Note: The Storage Scale scratch and evaluation type deploys the Storage Scale file system on virtual server instances, and the persistent type deploys the Storage Scale file system on bare metal servers."
+          "description":  "Select the Storage Scale file system deployment method. Note: The Storage Scale scratch and evaluation type deploys the Storage Scale file system on virtual server instances, and the persistent type deploys the Storage Scale file system on bare metal servers."
         },
         {
-          "name": "storage_bare_metal_server_profile",
+          "name": "storage_bare_metal_server_profile", 
+          "type":  "string",
           "value": "cx2d-metal-96x192",
-          "type": "string",
           "secure": false,
-          "description": "Specify the bare metal server profile type name to be used to create the bare metal storage nodes. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui)."
+          "description":  "Specify the bare metal server profile type name to be used to create the bare metal storage nodes. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui)."
         },
         {
-          "name": "storage_bare_metal_osimage_name",
-          "value": "ibm-redhat-8-6-minimal-amd64-5",
-          "type": "string",
+          "name": "storage_bare_metal_osimage_name", 
+          "type":  "string",
+          "value": "ibm-redhat-8-8-minimal-amd64-2",
           "secure": false,
-          "description": "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.6 stock image."
+          "description":  "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
         },
         {
-          "name": "scale_encryption_enabled",
+          "name": "scale_encryption_enabled", 
+          "type":  "bool",
           "value": "false",
-          "type": "bool",
           "secure": false,
-          "description": "To enable the encryption for the filesystem. Select true or false."
+          "description":  "To enable the encryption for the filesystem. Select true or false"
         },
         {
-          "name": "scale_encryption_server_count",
-          "value": "2",
-          "type": "number",
+          "name": "scale_encryption_vsi_osimage_name", 
+          "type":  "string",
+          "value": "hpcc-scale-gklm-v4-2-0-2",
           "secure": false,
-          "description": "Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5."
-        },  
-        {
-          "name": "scale_encryption_vsi_osimage_name",
-          "value": "hpcc-scale-gklm-v4-1-1-7",
-          "type": "string",
-          "secure": false,
-          "description": "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.6 stock image"
+          "description":  "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.8 stock image"
         },
         {
-          "name": "scale_encryption_vsi_profile",
+          "name": "scale_encryption_vsi_profile", 
+          "type":  "string",
           "value": "bx2-2x8",
-          "type": "string",
           "secure": false,
-          "description": "Specify the virtual server instance profile type name used to create the storage nodes. For more information, see Instance profiles"
+          "description":  "Specify the virtual server instance profile type name used to create the storage nodes. For more information, see Instance profiles"
         },
         {
-          "name": "scale_encryption_instance_key_pair",
-          "value": "",
-          "type": "string",
+          "name": "scale_encryption_server_count", 
+          "type":  "number",
+          "value": "2",
           "secure": false,
-          "description": "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Scale Encryption keyserver nodes. Make sure that the SSH key is present in the same resource group and region where the keyservers are provisioned. The solution supports only one ssh key that can be attached to keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+          "description":  "Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5."
         },
         {
-          "name": "scale_encryption_admin_password",
-          "value": "",
-          "type": "string",
+          "name": "scale_encryption_admin_password", 
+          "type":  "string",
           "secure": true,
-          "description": "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.1.1?topic=manager-password-policy) to know more about password policy of GKLM."
+          "value": "",
+          "description":  "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. Visit this [page](https://www.ibm.com/docs/en/sgklm/4.2?topic=manager-password-policy) to know more about password policy of GKLM."
         },
         {
           "name": "scale_encryption_dns_domain",
+          "type":  "string",
           "value": "gklmscale.com",
-          "type": "string",
           "secure": false,
-          "description": "IBM Cloud DNS Services domain name to be used for the gklm cluster."
+          "description":  "IBM Cloud DNS Services domain name to be used for the gklm cluster."
+        },
+        {
+          "name": "scale_encryption_instance_key_pair", 
+          "type":  "list(string)",
+          "value": "[]",
+          "secure": false,
+          "description":  "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Scale Encryption keyserver nodes. Make sure that the SSH key is present in the same resource group and region where the keyservers are provisioned. The solution supports only one ssh key that can be attached to keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "vpc_protocol_cluster_private_subnets_cidr_blocks", 
+          "type":  "list(string)",
+          "value": "[\"10.241.17.0/24\"]",
+          "secure": false,
+          "description":  "The CIDR block that's required for the creation of the protocol nodes private subnet"
+        },
+        {
+          "name": "vpc_protocol_cluster_dns_domain",
+          "type":  "string",
+          "value": "cesscale.com",
+          "secure": false,
+          "description":  "IBM Cloud DNS Services domain name to be used for the protocol nodes."
+        },
+        {
+          "name": "protocol_vsi_profile", 
+          "type":  "string",
+          "value": "cx2-32x64",
+          "secure": false,
+          "description":  "The virtual server instance profile type name to be used to create the protocol cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+        },
+        {
+          "name": "total_protocol_cluster_instances", 
+          "type":  "number",
+          "value": "2",
+          "secure": false,
+          "description":  "Total number of protocol nodes that you need to provision. A minimum of 2 nodes and a maximum of 16 nodes are supported"
+        },
+        {
+          "name": "filesets",
+          "type": "list(object({mount_path=string,size=number}))",
+          "value": "[{ mount_path = \"/mnt/binaries\", size = 0 }, { mount_path = \"/mnt/data\", size = 0 }]",
+          "secure": false,
+          "description":  "Mount point(s) and size(s) in GB of file share(s) that can be used to customize shared file storage layout. Provide the details for up to 5 file shares."
+        },
+        {
+          "name": "total_client_cluster_instances", 
+          "type":  "number",
+          "value": "2",
+          "secure": false,
+          "description":  "Total number of client cluster instances that you need to provision. A minimum of 2 nodes and a maximum of 64 nodes are supported"
+        },
+        {
+          "name": "client_vsi_osimage_name", 
+          "type":  "string",
+          "value": "ibm-redhat-8-8-minimal-amd64-2",
+          "secure": false,
+          "description":  "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
+        },
+        {
+          "name": "client_vsi_profile", 
+          "type":  "string",
+          "value": "cx2-2x4",
+          "secure": false,
+          "description":  "The virtual server instance profile type name to be used to create the client cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+        },
+        {
+          "name": "vpc_client_cluster_dns_domain", 
+          "type":  "string",
+          "value": "clntscale.com",
+          "secure": false,
+          "description":  "IBM Cloud DNS domain name to be used for client cluster."
+        },
+        {
+          "name": "client_cluster_key_pair",
+          "type":  "list(string)",
+          "value": "[]",
+          "secure": false,
+          "description":  "Name of the SSH keys configured in your IBM Cloud account that is used to establish a connection to the Client cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        {
+          "name": "ldap_basedns", 
+          "type":  "string",
+          "value": "null",
+          "secure": false,
+          "description":  "Base DNS of LDAP Server. If none given the LDAP feature will not be enabled."
+        },
+        {
+          "name": "ldap_server", 
+          "type":  "string",
+          "value": "null",
+          "secure": false,
+          "description":  "IP of existing LDAP server. If none given a new ldap server will be created"
+        },
+        {
+          "name": "ldap_admin_password", 
+          "type":  "string",
+          "secure": true,
+          "value": "",
+          "description":  "Password that is used for performing administrative operations for LDAP.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. "
+        },
+        {
+          "name": "ldap_user_name", 
+          "type":  "string",
+          "value": "null",
+          "secure": false,
+          "description":  "Custom LDAP User for performing cluster operations. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
+        },
+        {
+          "name": "ldap_user_password", 
+          "type":  "string",
+          "secure": true,
+          "value": "",
+          "description":  "LDAP User Password that is used for performing operations on the cluster.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username."
+        },
+        {
+          "name": "ldap_instance_key_pair", 
+          "type":  "list(string)",
+          "value": "[]",
+          "secure": false,
+          "description":  "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the LDAP Server. Make sure that the SSH key is present in the same resource group and region where the LDAP Servers are provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+        },
+        { 
+          "name": "ldap_vsi_profile", 
+          "type":  "string",
+          "value": "cx2-2x4",
+          "secure": false,
+          "description":  "Profile to be used for LDAP virtual server instance."
+        },
+        {  
+          "name": "ldap_vsi_osimage_name", 
+          "type":  "string",
+          "value": "ibm-ubuntu-22-04-3-minimal-amd64-1",
+          "secure": false,
+          "description":  "Image name to use for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature. "
         }
       ]
     }

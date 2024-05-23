@@ -13,12 +13,143 @@ data "ibm_resource_group" "itself" {
   name = var.resource_group
 }
 
+locals{
+  vpc_region = join("-", slice(split("-", var.vpc_availability_zones[0]), 0, 2))
+}
+
 data "ibm_is_region" "itself" {
-  name = var.vpc_region
+  name = local.vpc_region
 }
 
 data "ibm_is_zones" "itself" {
-  region = var.vpc_region
+  region = local.vpc_region
+}
+
+data "ibm_is_vpc" "existing_vpc" {
+  count = var.vpc_name != null ? 1 : 0
+  name = var.vpc_name
+}
+
+data "ibm_is_vpc_address_prefixes" "vpc_cidr" {
+  count = var.vpc_name != null ? 1 : 0
+  vpc   = data.ibm_is_vpc.existing_vpc[0].id
+}
+
+data "ibm_is_subnet" "existing_vpc_subnets" {
+  for_each   = var.vpc_name != null ? toset(data.ibm_is_vpc.existing_vpc[0].subnets[*].id) : toset([])
+  identifier = each.value
+}
+
+#Finding existing public gateway attached for the VPC
+locals {
+  existing_vpc_crn = var.vpc_name != null ? data.ibm_is_vpc.existing_vpc[0].crn : null
+  # Get the list of public gateways from the existing vpc on provided var.vpc_availability_zones input parameter. If no public gateway is found and in that zone our solution creates a new public gateway.
+  existing_pgs                 = [for subnetsdetails in data.ibm_is_subnet.existing_vpc_subnets : subnetsdetails.public_gateway if subnetsdetails.zone == var.vpc_availability_zones[0] && subnetsdetails.public_gateway != ""]
+  existing_public_gateway_zone = var.vpc_name == null ? "" : (length(local.existing_pgs) == 0 ? "" : element(local.existing_pgs, 0))
+}
+
+# Calculate the next available /24 or /18 CIDR blocks that don't overlap with existing subnets
+# Calculate the next available /24 or /18 CIDR blocks that don't overlap with existing subnets
+locals {
+  existing_vpc_cidr = var.vpc_name != null ? element(data.ibm_is_vpc_address_prefixes.vpc_cidr[0].address_prefixes[*].cidr, 0) : null
+  existing_subnets_cidrs = [for s in data.ibm_is_subnet.existing_vpc_subnets : s.ipv4_cidr_block]
+}
+
+data "ibm_is_subnet" "existing_compute_subnet" {
+  count      = var.vpc_name != null && var.vpc_compute_subnet != null ? 1 : 0
+  name       = var.vpc_compute_subnet
+}
+
+data "ibm_is_subnet" "existing_storage_subnet" {
+  count      = var.vpc_name != null && var.vpc_storage_subnet != null ? 1 : 0
+  name       = var.vpc_storage_subnet
+}
+
+data "ibm_is_subnet" "existing_protocol_subnet" {
+  count      = var.vpc_name != null && var.vpc_protocol_subnet != null ? 1 : 0
+  name       = var.vpc_protocol_subnet
+}
+
+locals {
+  existing_compute_subnet_id = var.vpc_name != null && var.vpc_compute_subnet != null ? data.ibm_is_subnet.existing_compute_subnet[0].id : null
+  existing_storage_subnet_id = var.vpc_name != null && var.vpc_storage_subnet != null ? data.ibm_is_subnet.existing_storage_subnet[0].id : null
+  existing_protocol_subnet_id = var.vpc_name != null && var.vpc_protocol_subnet != null ? data.ibm_is_subnet.existing_protocol_subnet[0].id : null
+}
+
+###### DNS Resources for existing VPC
+
+#dns_service
+data "ibm_resource_instance" "existing_dns_resource_instance" {
+  count             = var.vpc_dns_service_name != null ? 1 : 0
+  name              = var.vpc_dns_service_name
+  location          = "global"
+  resource_group_id = data.ibm_resource_group.itself.id
+  service           = "dns-svcs"
+}
+
+#dns_custom_resolver
+data "ibm_dns_custom_resolvers" "existing_dns_custom_resolver_id" {
+  count       = var.vpc_dns_custom_resolver_name != null ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+}
+
+#dns_zone
+
+data "ibm_dns_zones" "existing_dns_zones" {
+  count       = var.vpc_name != null ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+}
+
+locals {
+  existing_storage_dns_zone_id = var.vpc_dns_service_name != null ? element([for zone in data.ibm_dns_zones.existing_dns_zones[0].dns_zones : zone.zone_id if lower(zone.name) == lower(var.vpc_storage_cluster_dns_domain)], 0) : null
+
+  existing_compute_dns_zone_id = var.vpc_dns_service_name != null ? element([for zone in data.ibm_dns_zones.existing_dns_zones[0].dns_zones : zone.zone_id if lower(zone.name) == lower(var.vpc_compute_cluster_dns_domain)],0) : null
+
+  existing_gklm_dns_zone_id = var.scale_encryption_enabled == true && var.vpc_dns_service_name != null ? element([for zone in data.ibm_dns_zones.existing_dns_zones[0].dns_zones : zone.zone_id if lower(zone.name) == lower(var.scale_encryption_dns_domain)],0) : null
+
+  existing_protocol_dns_zone_id = var.vpc_dns_service_name != null ? element([for zone in data.ibm_dns_zones.existing_dns_zones[0].dns_zones : zone.zone_id if lower(zone.name) == lower(var.vpc_protocol_cluster_dns_domain)],0) : null
+  
+  existing_client_dns_zone_id = var.vpc_dns_service_name != null ? element([for zone in data.ibm_dns_zones.existing_dns_zones[0].dns_zones : zone.zone_id if lower(zone.name) == lower(var.vpc_client_cluster_dns_domain)],0) : null
+}
+
+#dns_permitted_networks
+
+data "ibm_dns_permitted_networks" "existing_storage_pm_ntw" {
+  count       = var.vpc_name != null ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+  zone_id     = local.existing_storage_dns_zone_id
+}
+
+data "ibm_dns_permitted_networks" "existing_compute_pm_ntw" {
+  count       = var.vpc_name != null ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+  zone_id     = local.existing_compute_dns_zone_id
+}
+
+data "ibm_dns_permitted_networks" "existing_gklm_pm_ntw" {
+  count       = var.scale_encryption_enabled == true && var.vpc_name != null && local.existing_gklm_dns_zone_id != null ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+  zone_id     = local.existing_gklm_dns_zone_id
+}
+
+data "ibm_dns_permitted_networks" "existing_protocol_pm_ntw" {
+  count       = local.scale_ces_enabled == true && var.vpc_name != null ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+  zone_id     = local.existing_protocol_dns_zone_id
+}
+
+data "ibm_dns_permitted_networks" "existing_client_pm_ntw" {
+  count       = var.vpc_name != null && local.create_client_cluster == true ? 1 : 0
+  instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
+  zone_id     = local.existing_client_dns_zone_id
+}
+
+locals {
+  existing_storage_pm_ntw_id  = var.vpc_name != null ? (length(data.ibm_dns_permitted_networks.existing_storage_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_storage_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
+  existing_compute_pm_ntw_id  = var.vpc_name != null ? (length(data.ibm_dns_permitted_networks.existing_compute_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_compute_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
+  existing_gklm_pm_ntw_id     = var.scale_encryption_enabled == true && var.vpc_name != null  && local.existing_gklm_dns_zone_id != null ? (length(data.ibm_dns_permitted_networks.existing_gklm_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_gklm_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
+  existing_protocol_pm_ntw_id = local.scale_ces_enabled == true && var.vpc_name != null && local.existing_protocol_dns_zone_id != null ? (length(data.ibm_dns_permitted_networks.existing_protocol_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_protocol_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
+  existing_client_pm_ntw_id   = local.create_client_cluster == true && var.vpc_name != null && local.existing_protocol_dns_zone_id != null ? (length(data.ibm_dns_permitted_networks.existing_client_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_client_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
 }
 
 locals {
@@ -62,15 +193,28 @@ data "ibm_is_bare_metal_server_profile" "storage_bare_metal_server" {
 }
 
 data "ibm_is_ssh_key" "bastion_ssh_key" {
-  name = var.bastion_key_pair
+  count = length(var.bastion_key_pair)
+  name = var.bastion_key_pair[count.index]
 }
 
 data "ibm_is_ssh_key" "compute_ssh_key" {
-  name = var.compute_cluster_key_pair
+  count = var.compute_cluster_key_pair != null ? length(var.compute_cluster_key_pair) : 0
+  name = var.compute_cluster_key_pair[count.index]
 }
 
 data "ibm_is_ssh_key" "storage_ssh_key" {
-  name = var.storage_cluster_key_pair
+  count = length(var.storage_cluster_key_pair)
+  name = var.storage_cluster_key_pair[count.index]
+}
+
+data "ibm_is_ssh_key" "client_ssh_key" {
+  count = var.client_cluster_key_pair != null ? length(var.client_cluster_key_pair) : 0
+  name = var.client_cluster_key_pair[count.index]
+}
+
+data "ibm_is_ssh_key" "encryption_ssh_key" {
+  count = var.scale_encryption_instance_key_pair != null ? length(var.scale_encryption_instance_key_pair) : 0
+  name = var.scale_encryption_instance_key_pair[count.index]
 }
 
 data "ibm_is_image" "bastion_image" {
@@ -92,21 +236,21 @@ locals {
 locals {
   // Check whether an entry is found in the mapping file for the given bootstrap node image
   bootstrap_image_mapping_entry_found = contains(keys(local.bootstrap_image_region_map), var.bootstrap_osimage_name)
-  bootstrap_image_id                  = local.bootstrap_image_mapping_entry_found ? lookup(lookup(local.bootstrap_image_region_map, var.bootstrap_osimage_name), var.vpc_region) : "Image not found with the given name"
+  bootstrap_image_id                  = local.bootstrap_image_mapping_entry_found ? lookup(lookup(local.bootstrap_image_region_map, var.bootstrap_osimage_name), local.vpc_region) : "Image not found with the given name"
 
   // Check whether an entry is found in the mapping file for the given compute node image
   compute_image_mapping_entry_found = contains(keys(local.compute_image_region_map), var.compute_vsi_osimage_name)
-  compute_image_id                  = var.storage_type == "evaluation" && !(local.compute_image_mapping_entry_found) ? lookup(lookup(local.evaluation_image_region_map, one(keys(local.evaluation_image_region_map))), var.vpc_region) : local.compute_image_mapping_entry_found ? lookup(lookup(local.compute_image_region_map, var.compute_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.compute_image[0].id
+  compute_image_id                  = var.storage_type == "evaluation" && !(local.compute_image_mapping_entry_found) ? lookup(lookup(local.evaluation_image_region_map, one(keys(local.evaluation_image_region_map))), local.vpc_region) : local.compute_image_mapping_entry_found ? lookup(lookup(local.compute_image_region_map, var.compute_vsi_osimage_name), local.vpc_region) : data.ibm_is_image.compute_image[0].id
   compute_osimage_name              = var.storage_type == "evaluation" && !(local.compute_image_mapping_entry_found) ? one(keys(local.evaluation_image_region_map)) : local.compute_image_mapping_entry_found ? var.compute_vsi_osimage_name : data.ibm_is_image.compute_image[0].name
 
   // Check whether an entry is found in the mapping file for the given storage node image
   storage_image_mapping_entry_found = contains(keys(local.storage_image_region_map), var.storage_vsi_osimage_name)
-  storage_image_id                  = var.storage_type == "evaluation" ? lookup(lookup(local.evaluation_image_region_map, one(keys(local.evaluation_image_region_map))), var.vpc_region) : local.storage_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.storage_image[0].id
+  storage_image_id                  = var.storage_type == "evaluation" ? lookup(lookup(local.evaluation_image_region_map, one(keys(local.evaluation_image_region_map))), local.vpc_region) : local.storage_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_vsi_osimage_name), local.vpc_region) : data.ibm_is_image.storage_image[0].id
   storage_osimage_name              = var.storage_type == "evaluation" ? one(keys(local.evaluation_image_region_map)) : local.storage_image_mapping_entry_found ? var.storage_vsi_osimage_name : data.ibm_is_image.storage_image[0].name
 
   // Check whether an entry is found in the mapping file for the given GKLM image
   scale_encryption_image_mapping_entry_found = contains(keys(local.scale_encryption_image_region_map), var.scale_encryption_vsi_osimage_name)
-  scale_encryption_image_id                  = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? lookup(lookup(local.scale_encryption_image_region_map, one(keys(local.scale_encryption_image_region_map))), var.vpc_region) : local.scale_encryption_image_mapping_entry_found ? lookup(lookup(local.scale_encryption_image_region_map, var.scale_encryption_vsi_osimage_name), var.vpc_region) : data.ibm_is_image.scale_encryption_image[0].id
+  scale_encryption_image_id                  = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? lookup(lookup(local.scale_encryption_image_region_map, one(keys(local.scale_encryption_image_region_map))), local.vpc_region) : local.scale_encryption_image_mapping_entry_found ? lookup(lookup(local.scale_encryption_image_region_map, var.scale_encryption_vsi_osimage_name), local.vpc_region) : data.ibm_is_image.scale_encryption_image[0].id
   scale_encryption_osimage_name              = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? one(keys(local.scale_encryption_image_region_map)) : local.scale_encryption_image_mapping_entry_found ? var.scale_encryption_vsi_osimage_name : data.ibm_is_image.scale_encryption_image[0].name
 }
 
