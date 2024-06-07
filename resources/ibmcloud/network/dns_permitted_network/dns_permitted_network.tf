@@ -22,7 +22,7 @@ resource "time_sleep" "wait_30_seconds" {
 
 resource "ibm_dns_permitted_network" "itself" {
   count       = var.permitted_count
-  instance_id = var.instance_id
+  instance_id = var.instance_id[0]
   zone_id     = var.zone_id
   vpc_crn     = var.vpc_crn
   type        = "vpc"

@@ -18,16 +18,16 @@ variable "compute_subnet_crn" {}
 
 resource "ibm_dns_custom_resolver" "itself" {
   name              = var.customer_resolver_name
-  instance_id       = var.instance_guid
+  instance_id       = var.instance_guid[0]
   description       = var.description
   high_availability = false
   enabled     = true
   locations {
-    subnet_crn = var.storage_subnet_crn
+    subnet_crn = var.storage_subnet_crn[0]
     enabled    = true
   }
   locations {
-    subnet_crn = var.compute_subnet_crn
+    subnet_crn = var.compute_subnet_crn[0]
     enabled    = false
   }
 }

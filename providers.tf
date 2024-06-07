@@ -9,5 +9,5 @@ terraform {
 
 provider "ibm" {
   ibmcloud_api_key = var.ibmcloud_api_key
-  region           = var.vpc_region
+  region           = local.vpc_region
 }
