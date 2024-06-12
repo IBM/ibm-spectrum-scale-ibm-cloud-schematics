@@ -376,7 +376,7 @@ locals {
   scale_cloud_install_repo_tag  = "v2.3.1"
   scale_cloud_infra_repo_url    = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name   = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag    = "ibmcloud_v2.3.0"
+  scale_cloud_infra_repo_tag    = "ibmcloud_v2.3.1"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
