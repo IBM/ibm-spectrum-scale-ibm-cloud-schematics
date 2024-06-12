@@ -158,7 +158,7 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-3"
+  default     = "hpcc-scale-bootstrap-v2-4"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -229,10 +229,6 @@ variable "compute_cluster_key_pair" {
   type        = list(string)
   default     = null
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Compute cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one ssh key that can be attached to compute nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
-  validation {
-    condition = alltrue([for key in var.compute_cluster_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
-    error_message = "Our automation code supports multi ssh keys and should follow above patteren to be attached to the compute node."
-  }
 }
 
 variable "compute_cluster_gui_username" {
@@ -284,7 +280,7 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5190-rhel88"
+  default     = "hpcc-scale5192-rhel88"
   description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
@@ -295,7 +291,7 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5190-rhel88"
+  default     = "hpcc-scale5192-rhel88"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
@@ -356,7 +352,7 @@ variable "storage_bare_metal_server_profile" {
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-8-minimal-amd64-2"
+  default     = "ibm-redhat-8-8-minimal-amd64-3"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
@@ -372,7 +368,7 @@ variable "scale_encryption_enabled" {
 
 variable "scale_encryption_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale-gklm-v4-2-0-2"
+  default     = "hpcc-scale-gklm-v4-2-0-3"
   description = "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.8 stock image"
 }
 
@@ -471,7 +467,7 @@ variable "total_client_cluster_instances" {
 
 variable "client_vsi_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-8-minimal-amd64-2"
+  default     = "ibm-redhat-8-8-minimal-amd64-3"
   description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
 }
 
@@ -495,10 +491,6 @@ variable "client_cluster_key_pair" {
   type        = list(string)
   default     = null
   description = "Name of the SSH keys configured in your IBM Cloud account that is used to establish a connection to the Client cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
-  validation {
-    condition = alltrue([for key in var.client_cluster_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
-    error_message = "Our automation code supports multi ssh keys and should follow above patteren to be attached to the client node."
-  }
 }
 
 variable "ldap_basedns" {
