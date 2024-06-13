@@ -354,7 +354,7 @@ locals {
   zones                         = jsonencode(var.vpc_availability_zones)
   compute_private_subnets       = (var.vpc_name == null || var.vpc_name != null) && var.vpc_compute_subnet == null ? tostring(element(module.compute_private_subnet[0].subnet_id, 0)) : local.existing_compute_subnet_id
   storage_private_subnets       = (var.vpc_name == null || var.vpc_name != null) && var.vpc_storage_subnet == null ? tostring(element(module.storage_private_subnet[0].subnet_id, 0)) : local.existing_storage_subnet_id
-  protocol_private_subnets       = local.scale_ces_enabled && (var.vpc_name == null || var.vpc_name != null) && var.vpc_protocol_subnet == null ? tostring(element(module.protocol_private_subnet[0].subnet_id, 0)) : local.existing_protocol_subnet_id
+  protocol_private_subnets       = local.scale_ces_enabled ? (var.vpc_name == null || var.vpc_name != null) && var.vpc_protocol_subnet == null ? tostring(element(module.protocol_private_subnet[0].subnet_id, 0)) : local.existing_protocol_subnet_id : ""
   scale_cluster_resource_tags   = jsonencode(local.tags)
   products                      = var.scale_encryption_enabled == false ? "scale" : "scale,gklm"
   compute_node_count            = var.total_compute_cluster_instances
@@ -373,10 +373,10 @@ locals {
   ldap_instance_key_pair        = var.ldap_basedns != null ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
   scale_cloud_install_repo_url  = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_repo_tag  = "v2.3.0"
+  scale_cloud_install_repo_tag  = "v2.3.1"
   scale_cloud_infra_repo_url    = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name   = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag    = "ibmcloud_v2.3.0"
+  scale_cloud_infra_repo_tag    = "ibmcloud_v2.3.1"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -458,7 +458,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "ldap_admin_password": "${var.ldap_basedns != "null" ? var.ldap_admin_password : "null" }",
     "ldap_user_name": "${var.ldap_basedns != "null" ? var.ldap_user_name : "null" }",
     "ldap_user_password": "${var.ldap_basedns != "null" ? var.ldap_user_password : "null" }",
-    "ldap_instance_key_pair": ${local.scale_encryption_instance_key_pair},
+    "ldap_instance_key_pair": ${local.ldap_instance_key_pair},
     "ldap_vsi_profile": "${var.ldap_vsi_profile}",
     "ldap_vsi_osimage_name": "${var.ldap_vsi_osimage_name}"
 }    
