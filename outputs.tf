@@ -24,12 +24,12 @@ output "vpc_compute_cluster_dns_service_id" {
 }
 
 output "vpc_storage_cluster_dns_zone_id" {
-  value       = local.cluster_storage_dns_zone_id
+  value       = module.storage_dns_zone[0].dns_zone_id
   description = "IBM Cloud DNS storage cluster zone ID."
 }
 
 output "vpc_compute_cluster_dns_zone_id" {
-  value       = local.cluster_compute_dns_zone_id
+  value       = var.total_compute_cluster_instances > 0 ? module.compute_dns_zone[0].dns_zone_id : ""
   description = "IBM Cloud DNS compute cluster zone ID."
 }
 

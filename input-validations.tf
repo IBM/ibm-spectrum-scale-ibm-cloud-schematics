@@ -93,6 +93,7 @@ data "ibm_dns_custom_resolvers" "existing_dns_custom_resolver_id" {
   instance_id = data.ibm_resource_instance.existing_dns_resource_instance[0].guid
 }
 
+/*
 #dns_zone
 
 data "ibm_dns_zones" "existing_dns_zones" {
@@ -151,6 +152,7 @@ locals {
   existing_protocol_pm_ntw_id = local.scale_ces_enabled == true && var.vpc_name != null && local.existing_protocol_dns_zone_id != null ? (length(data.ibm_dns_permitted_networks.existing_protocol_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_protocol_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
   existing_client_pm_ntw_id   = local.create_client_cluster == true && var.vpc_name != null && local.existing_protocol_dns_zone_id != null ? (length(data.ibm_dns_permitted_networks.existing_client_pm_ntw[0].dns_permitted_networks) > 0 ? tolist(data.ibm_dns_permitted_networks.existing_client_pm_ntw[0].dns_permitted_networks[*].permitted_network_id)[0] : null) : null
 }
+*/
 
 locals {
   validate_vpc_availability_zones_cnd = length(setsubtract(var.vpc_availability_zones, data.ibm_is_zones.itself.zones))
@@ -281,28 +283,29 @@ data "ibm_is_image" "scale_encryption_image" {
 
 locals {
   // Validate the total storage count for the total_storage_cluster_instance variable, as this validation is not possible to be done on Variables decided to validate this during the apply plan process. For both persistent and scratch type the validation happens at main.tf directly
-  validate_total_storage_cluster_instances_cnd = var.storage_type == "persistent" ? var.total_storage_cluster_instances >= 3 && var.total_storage_cluster_instances <= 10 : var.total_storage_cluster_instances >= 3 && var.total_storage_cluster_instances <= 18
-  total_storage_cluster_instances_msg          = "Specified input \"total_storage_cluster_instances\" must be in between the range of 3 and 10 while storage type is persistent otherwise it should be in range of 3 and 18.Please provide the appropriate range of value."
+  validate_total_storage_cluster_instances_cnd = var.storage_type == "persistent" ? var.total_storage_cluster_instances >= 2 && var.total_storage_cluster_instances <= 42 : var.total_storage_cluster_instances >= 2 && var.total_storage_cluster_instances <= 64
+  total_storage_cluster_instances_msg          = "Specified input \"total_storage_cluster_instances\" must be in between the range of 2 and 42 while storage type is persistent otherwise it should be in range of 2 and 64.Please provide the appropriate range of value."
   validate_total_storage_cluster_instances_chk = regex("^${local.total_storage_cluster_instances_msg}$", ((local.validate_total_storage_cluster_instances_cnd ? local.total_storage_cluster_instances_msg : "") ))
 }
 
 locals {
   validate_storage_gui_username_cnd = (length(var.storage_cluster_gui_username) >= 4 && length(var.storage_cluster_gui_username) <= 32 && trimspace(var.storage_cluster_gui_username) != "")
-  storage_gui_username_msg                = "Specified input for \"storage_cluster_gui_username\" is not valid.username should be greater or equal to 4 letters."
-  validate_storage_gui_username_chk       = regex("^${local.storage_gui_username_msg}$", (local.validate_storage_gui_username_cnd ? local.storage_gui_username_msg : ""))
+  storage_gui_username_msg          = "Specified input for \"storage_cluster_gui_username\" is not valid.username should be greater or equal to 4 letters."
+  validate_storage_gui_username_chk = regex("^${local.storage_gui_username_msg}$", (local.validate_storage_gui_username_cnd ? local.storage_gui_username_msg : ""))
 
-  validate_compute_gui_username_cnd = (length(var.compute_cluster_gui_username) >= 4 && length(var.compute_cluster_gui_username) <= 32 && trimspace(var.compute_cluster_gui_username) != "")
+  validate_compute_gui_username_cnd = var.total_compute_cluster_instances > 0 ? (length(var.compute_cluster_gui_username) >= 4 && length(var.compute_cluster_gui_username) <= 32 && trimspace(var.compute_cluster_gui_username) != "") : true
   compute_gui_username_msg          = "Specified input for \"compute_cluster_gui_username\" is not valid. username should be greater or equal to 4 letters."
   validate_compute_gui_username_chk = regex("^${local.compute_gui_username_msg}$", (local.validate_compute_gui_username_cnd ? local.compute_gui_username_msg : ""))
 
   validate_storage_gui_password_cnd = (replace(lower(var.storage_cluster_gui_password), lower(var.storage_cluster_gui_username), "") == lower(var.storage_cluster_gui_password))
-  storage_gui_password_msg                  = "Storage cluster GUI password should not contain username."
+  storage_gui_password_msg          = "Storage cluster GUI password should not contain username."
   validate_storage_gui_password_chk = regex("^${local.storage_gui_password_msg}$", (local.validate_storage_gui_password_cnd ? local.storage_gui_password_msg : ""))
 
-  validate_compute_gui_password_cnd = (replace(lower(var.compute_cluster_gui_password), lower(var.compute_cluster_gui_username), "") == lower(var.compute_cluster_gui_password))
-  compute_gui_password_msg                  = "Compute cluster GUI password should not contain username."
+  validate_compute_gui_password_cnd = var.total_compute_cluster_instances > 0 ? ((replace(lower(var.compute_cluster_gui_password), lower(var.compute_cluster_gui_username), "") == lower(var.compute_cluster_gui_password)) && can(regex("^.{8,}$", var.compute_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.compute_cluster_gui_password)!= "") && can(regex("[a-z]{1,}", var.compute_cluster_gui_password) != "") && can(regex("[A-Z]{1,}",var.compute_cluster_gui_password ) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.compute_cluster_gui_password) != "" )&& trimspace(var.compute_cluster_gui_password) != "" && can(regex("^[!@#$%^&*()_+=-]", var.compute_cluster_gui_password)) == false) : true
+  compute_gui_password_msg          = "Compute cluster GUI password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username and it should not start with a special character." 
   validate_compute_gui_password_chk = regex("^${local.compute_gui_password_msg}$", (local.validate_compute_gui_password_cnd ? local.compute_gui_password_msg : ""))
 }
+
 
 locals {
   total_storage_capacity      = var.storage_type == "evaluation" ? data.ibm_is_instance_profile.storage_vsi[0].disks[0].quantity[0].value * data.ibm_is_instance_profile.storage_vsi[0].disks[0].size[0].value * var.total_storage_cluster_instances : 0
@@ -331,7 +334,51 @@ locals {
   validate_GKLM_keypair  = (var.scale_encryption_enabled && var.scale_encryption_instance_key_pair == "")
   keypair_msg            = "SSH-Keypair should not be empty when encryption is enabled."
   gklm_keypair_check     = regex("^${local.keypair_msg}$", (local.validate_GKLM_keypair ? "" : local.keypair_msg ))
-  
+}
+
+# LDAP Variable Validation
+locals {
+  ldap_server_status          = var.enable_ldap == true && var.ldap_server == "null" ? false : true
+
+  // LDAP base DNS Validation
+  validate_ldap_basedns       = (var.enable_ldap && trimspace(var.ldap_basedns) != "") || !var.enable_ldap
+  ldap_basedns_msg            = "If LDAP is enabled, then the base DNS should not be empty or null. Need a valid domain name."
+  validate_ldap_basedns_chk   = regex(
+    "^${local.ldap_basedns_msg}$",
+  (local.validate_ldap_basedns ? local.ldap_basedns_msg : ""))
+
+  // LDAP base existing LDAP server
+  validate_ldap_server       = (var.enable_ldap && trimspace(var.ldap_server) != "") || !var.enable_ldap
+  ldap_server_msg            = "IP of existing LDAP server. If none given a new ldap server will be created. It should not be empty."
+  validate_ldap_server_chk   = regex(
+    "^${local.ldap_server_msg}$",
+  (local.validate_ldap_server ? local.ldap_server_msg : ""))
+
+  // LDAP Admin Password Validation
+  validate_ldap_adm_pwd       = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_admin_password) >= 8 && length(var.ldap_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_admin_password)) && can(regex("^.*[~@_+:].*$", var.ldap_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_admin_password)) : local.ldap_server_status
+  ldap_adm_password_msg       = "Password that is used for LDAP admin.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
+  validate_ldap_adm_pwd_chk   = regex(
+    "^${local.ldap_adm_password_msg}$",
+  (local.validate_ldap_adm_pwd ? local.ldap_adm_password_msg : ""))
+
+  // LDAP User Validation
+  validate_ldap_usr = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_user_name) >= 4 && length(var.ldap_user_name) <= 32 && var.ldap_user_name != "" && can(regex("^[a-zA-Z0-9_-]*$", var.ldap_user_name)) && trimspace(var.ldap_user_name) != "") : local.ldap_server_status
+  ldap_usr_msg       = "The input for 'ldap_user_name' is considered invalid. The username must be within the range of 4 to 32 characters and may only include letters, numbers, hyphens, and underscores. Spaces are not permitted."
+  validate_ldap_usr_chk   = regex(
+    "^${local.ldap_usr_msg}$",
+  (local.validate_ldap_usr ? local.ldap_usr_msg : ""))
+
+  // LDAP User Password Validation
+  validate_ldap_usr_pwd       = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_user_password) >= 8 && length(var.ldap_user_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_user_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_user_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_user_password)) && can(regex("^.*[~@_+:].*$", var.ldap_user_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_user_password)) : local.ldap_server_status
+  ldap_usr_password_msg       = "Password that is used for LDAP user.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
+  validate_ldap_usr_pwd_chk   = regex(
+    "^${local.ldap_usr_password_msg}$",
+  (local.validate_ldap_usr_pwd ? local.ldap_usr_password_msg : ""))  
+
+  // LDAP Keypair Validation
+  validate_LDAP_keypair  = (var.enable_ldap && var.ldap_instance_key_pair == null)
+  ldap_keypair_msg       = "SSH-Keypair should not be empty when LDAP is enabled."
+  ldap_keypair_check     = regex("^${local.ldap_keypair_msg}$", (local.validate_LDAP_keypair ? "" : local.ldap_keypair_msg ))
 }
 
 locals {

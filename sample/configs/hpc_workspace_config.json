@@ -1,7 +1,7 @@
 {
   "name": "hpcc-storage-scale-workspace",
   "type": [
-    "terraform_v1.4"
+    "terraform_v1.5"
   ],
   "location": "us-east",
   "resource_group": "Default",
@@ -13,7 +13,7 @@
   "template_data": [
     {
       "folder": ".",
-      "type": "terraform_v1.4",
+      "type": "terraform_v1.5",
       "env_values":[
         { 
           "TF_CLI_ARGS_apply": "-parallelism=250"
@@ -23,6 +23,9 @@
         },
         {
           "TF_CLI_ARGS_destroy": "-parallelism=100"
+        },
+        {
+          "TF_LOG": "INFO"
         },
         { 
           "VAR1":"<val1>"
@@ -129,14 +132,14 @@
           "type":  "string",
           "value": "compscale.com",
           "secure": false,
-          "description":  "IBM Cloud DNS Services domain name to be used for the compute cluster."
+          "description":  "IBM Cloud DNS Services domain name to be used for the compute cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
         },
         {
           "name": "vpc_storage_cluster_dns_domain",
           "type":  "string",
           "value": "strgscale.com",
           "secure": false,
-          "description":  "IBM Cloud DNS Services domain name to be used for the storage cluster."
+          "description":  "IBM Cloud DNS Services domain name to be used for the storage cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
         },
         {
           "name": "remote_cidr_blocks", 
@@ -169,7 +172,7 @@
         {
           "name": "bootstrap_osimage_name", 
           "type":  "string",
-          "value": "hpcc-scale-bootstrap-v2-3",
+          "value": "hpcc-scale-bootstrap-v2-4",
           "secure": false,
           "description":  "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
         },
@@ -234,7 +237,7 @@
           "type":  "string",
           "value": "Please fill here",
           "secure": true,
-          "description":  "Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username."
+          "description":  "The compute cluster GUI password is used for logging in to the compute cluster through the GUI. The password should contain a minimum of 8 characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username and it should not start with a special character."
         },
         {
           "name": "storage_vsi_profile", 
@@ -246,28 +249,28 @@
         {
           "name": "total_compute_cluster_instances", 
           "type":  "number",
-          "value": "3",
+          "value": "0",
           "secure": false,
           "description":  "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
         },
         {
           "name": "total_storage_cluster_instances",
           "type":  "number",
-          "value": "4",
+          "value": "2",
           "secure": false,
-          "description":  "Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent."
+          "description":  "Total number of storage cluster instances that you need to provision. A minimum of two nodes and a maximum of 64 nodes are supported if the storage type selected is scratch. A minimum of two nodes and a maximum of 42 nodes are supported if the storage type selected is persistent."
         },
         {
           "name": "compute_vsi_osimage_name",
           "type":  "string",
-          "value": "hpcc-scale5190-rhel88",
+          "value": "hpcc-scale5192-rhel88",
           "secure": false,
           "description":  "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
         },
         {
           "name": "storage_vsi_osimage_name",
           "type":  "string",
-          "value": "hpcc-scale5190-rhel88",
+          "value": "hpcc-scale5192-rhel88",
           "secure": false,
           "description":  "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
         },
@@ -290,7 +293,7 @@
           "type":  "string",
           "value": "Please fill here",
           "secure": true,
-          "description":  "Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username."
+          "description":  "The storage cluster GUI password is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username and it should not start with a special character."
         },
         {
           "name": "storage_type",
@@ -309,7 +312,7 @@
         {
           "name": "storage_bare_metal_osimage_name", 
           "type":  "string",
-          "value": "ibm-redhat-8-8-minimal-amd64-2",
+          "value": "ibm-redhat-8-8-minimal-amd64-3",
           "secure": false,
           "description":  "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
         },
@@ -323,7 +326,7 @@
         {
           "name": "scale_encryption_vsi_osimage_name", 
           "type":  "string",
-          "value": "hpcc-scale-gklm-v4-2-0-2",
+          "value": "hpcc-scale-gklm-v4-2-0-3",
           "secure": false,
           "description":  "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.8 stock image"
         },
@@ -353,7 +356,7 @@
           "type":  "string",
           "value": "gklmscale.com",
           "secure": false,
-          "description":  "IBM Cloud DNS Services domain name to be used for the gklm cluster."
+          "description":  "IBM Cloud DNS Services domain name to be used for the gklm cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
         },
         {
           "name": "scale_encryption_instance_key_pair", 
@@ -374,7 +377,7 @@
           "type":  "string",
           "value": "cesscale.com",
           "secure": false,
-          "description":  "IBM Cloud DNS Services domain name to be used for the protocol nodes."
+          "description":  "IBM Cloud DNS Services domain name to be used for the protocol nodes. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
         },
         {
           "name": "protocol_vsi_profile", 
@@ -393,7 +396,7 @@
         {
           "name": "filesets",
           "type": "list(object({mount_path=string,size=number}))",
-          "value": "[{ mount_path = \"/mnt/binaries\", size = 0 }, { mount_path = \"/mnt/data\", size = 0 }]",
+          "value": "[{ mount_path = \"/mnt/scale/tools\", size = 0 }, { mount_path = \"/mnt/scale/data\", size = 0 }]",
           "secure": false,
           "description":  "Mount point(s) and size(s) in GB of file share(s) that can be used to customize shared file storage layout. Provide the details for up to 5 file shares."
         },
@@ -407,7 +410,7 @@
         {
           "name": "client_vsi_osimage_name", 
           "type":  "string",
-          "value": "ibm-redhat-8-8-minimal-amd64-2",
+          "value": "ibm-redhat-8-8-minimal-amd64-3",
           "secure": false,
           "description":  "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
         },
@@ -423,7 +426,7 @@
           "type":  "string",
           "value": "clntscale.com",
           "secure": false,
-          "description":  "IBM Cloud DNS domain name to be used for client cluster."
+          "description":  "IBM Cloud DNS domain name to be used for client cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
         },
         {
           "name": "client_cluster_key_pair",
@@ -433,18 +436,25 @@
           "description":  "Name of the SSH keys configured in your IBM Cloud account that is used to establish a connection to the Client cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
         },
         {
+          "name": "enable_ldap", 
+          "type":  "bool",
+          "value": "false",
+          "secure": false,
+          "description":  "Set this option to true to enable LDAP for IBM Cloud HPC, with the default value set to false."
+        },
+        {
           "name": "ldap_basedns", 
           "type":  "string",
-          "value": "null",
+          "value": "ldapscale.com",
           "secure": false,
-          "description":  "Base DNS of LDAP Server. If none given the LDAP feature will not be enabled."
+          "description":  "The dns domain name is used for configuring the LDAP server. If an LDAP server is already in existence, ensure to provide the associated DNS domain name."
         },
         {
           "name": "ldap_server", 
           "type":  "string",
           "value": "null",
           "secure": false,
-          "description":  "IP of existing LDAP server. If none given a new ldap server will be created"
+          "description":  "Provide the IP address for the existing LDAP server. If no address is given, a new LDAP server will be created."
         },
         {
           "name": "ldap_admin_password", 
@@ -456,16 +466,16 @@
         {
           "name": "ldap_user_name", 
           "type":  "string",
-          "value": "null",
+          "value": "",
           "secure": false,
-          "description":  "Custom LDAP User for performing cluster operations. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
+          "description":  "Custom LDAP User for performing cluster operations. Note: Username should be between 4 to 32 characters, (any combination of lowercase and uppercase letters).[This value is ignored for an existing LDAP server]"
         },
         {
           "name": "ldap_user_password", 
           "type":  "string",
           "secure": true,
           "value": "",
-          "description":  "LDAP User Password that is used for performing operations on the cluster.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username."
+          "description":  "The LDAP user password should be 8 to 20 characters long, with a mix of at least three alphabetic characters, including one uppercase and one lowercase letter. It must also include two numerical digits and at least one special character from (~@_+:) are required.It is important to avoid including the username in the password for enhanced security.[This value is ignored for an existing LDAP server]."
         },
         {
           "name": "ldap_instance_key_pair", 
@@ -486,7 +496,7 @@
           "type":  "string",
           "value": "ibm-ubuntu-22-04-3-minimal-amd64-1",
           "secure": false,
-          "description":  "Image name to use for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature. "
+          "description":  "Image name to be used for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature."
         }
       ]
     }
