@@ -13,7 +13,7 @@ data "ibm_resource_group" "itself" {
   name = var.resource_group
 }
 
-locals{
+locals {
   vpc_region = join("-", slice(split("-", var.vpc_availability_zones[0]), 0, 2))
 }
 
@@ -27,7 +27,7 @@ data "ibm_is_zones" "itself" {
 
 data "ibm_is_vpc" "existing_vpc" {
   count = var.vpc_name != null ? 1 : 0
-  name = var.vpc_name
+  name  = var.vpc_name
 }
 
 data "ibm_is_vpc_address_prefixes" "vpc_cidr" {
@@ -51,28 +51,28 @@ locals {
 # Calculate the next available /24 or /18 CIDR blocks that don't overlap with existing subnets
 # Calculate the next available /24 or /18 CIDR blocks that don't overlap with existing subnets
 locals {
-  existing_vpc_cidr = var.vpc_name != null ? element(data.ibm_is_vpc_address_prefixes.vpc_cidr[0].address_prefixes[*].cidr, 0) : null
+  existing_vpc_cidr      = var.vpc_name != null ? element(data.ibm_is_vpc_address_prefixes.vpc_cidr[0].address_prefixes[*].cidr, 0) : null
   existing_subnets_cidrs = [for s in data.ibm_is_subnet.existing_vpc_subnets : s.ipv4_cidr_block]
 }
 
 data "ibm_is_subnet" "existing_compute_subnet" {
-  count      = var.vpc_name != null && var.vpc_compute_subnet != null ? 1 : 0
-  name       = var.vpc_compute_subnet
+  count = var.vpc_name != null && var.vpc_compute_subnet != null ? 1 : 0
+  name  = var.vpc_compute_subnet
 }
 
 data "ibm_is_subnet" "existing_storage_subnet" {
-  count      = var.vpc_name != null && var.vpc_storage_subnet != null ? 1 : 0
-  name       = var.vpc_storage_subnet
+  count = var.vpc_name != null && var.vpc_storage_subnet != null ? 1 : 0
+  name  = var.vpc_storage_subnet
 }
 
 data "ibm_is_subnet" "existing_protocol_subnet" {
-  count      = var.vpc_name != null && var.vpc_protocol_subnet != null ? 1 : 0
-  name       = var.vpc_protocol_subnet
+  count = var.vpc_name != null && var.vpc_protocol_subnet != null ? 1 : 0
+  name  = var.vpc_protocol_subnet
 }
 
 locals {
-  existing_compute_subnet_id = var.vpc_name != null && var.vpc_compute_subnet != null ? data.ibm_is_subnet.existing_compute_subnet[0].id : null
-  existing_storage_subnet_id = var.vpc_name != null && var.vpc_storage_subnet != null ? data.ibm_is_subnet.existing_storage_subnet[0].id : null
+  existing_compute_subnet_id  = var.vpc_name != null && var.vpc_compute_subnet != null ? data.ibm_is_subnet.existing_compute_subnet[0].id : null
+  existing_storage_subnet_id  = var.vpc_name != null && var.vpc_storage_subnet != null ? data.ibm_is_subnet.existing_storage_subnet[0].id : null
   existing_protocol_subnet_id = var.vpc_name != null && var.vpc_protocol_subnet != null ? data.ibm_is_subnet.existing_protocol_subnet[0].id : null
 }
 
@@ -161,8 +161,8 @@ locals {
 }
 
 locals {
-  validate_zone                  = var.storage_type == "persistent" ? contains(["us-south-1", "us-south-3", "eu-de-1", "eu-de-2"], join(",", var.vpc_availability_zones)) : true
-  zone_msg                       = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, and eu-de-2. To deploy persistent storage provide any one of the supported availability zones."
+  validate_zone                  = var.storage_type == "persistent" ? contains(["us-south-1", "us-south-3", "eu-de-1", "eu-de-2", "jp-tok-2", "jp-tok-3"], join(",", var.vpc_availability_zones)) : true
+  zone_msg                       = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, eu-de-2, jp-tok-2 and jp-tok-3. To deploy persistent storage provide any one of the supported availability zones."
   validate_persistent_region_chk = regex("^${local.zone_msg}$", (local.validate_zone ? local.zone_msg : ""))
 }
 
@@ -173,50 +173,50 @@ locals {
 }
 
 data "ibm_is_instance_profile" "bastion" {
-  name   = var.bastion_vsi_profile
+  name = var.bastion_vsi_profile
 }
 
 data "ibm_is_instance_profile" "bootstrap" {
-  name   = var.bootstrap_vsi_profile
+  name = var.bootstrap_vsi_profile
 }
 
 data "ibm_is_instance_profile" "compute_vsi" {
-  name   = var.compute_vsi_profile
+  name = var.compute_vsi_profile
 }
 
 data "ibm_is_instance_profile" "storage_vsi" {
-  name   = var.storage_vsi_profile
-  count  = var.storage_type != "persistent" ? 1 : 0
+  name  = var.storage_vsi_profile
+  count = var.storage_type != "persistent" ? 1 : 0
 }
 
 data "ibm_is_bare_metal_server_profile" "storage_bare_metal_server" {
-  name   = var.storage_bare_metal_server_profile
-  count  = var.storage_type == "persistent" ? 1 : 0
+  name  = var.storage_bare_metal_server_profile
+  count = var.storage_type == "persistent" ? 1 : 0
 }
 
 data "ibm_is_ssh_key" "bastion_ssh_key" {
   count = length(var.bastion_key_pair)
-  name = var.bastion_key_pair[count.index]
+  name  = var.bastion_key_pair[count.index]
 }
 
 data "ibm_is_ssh_key" "compute_ssh_key" {
   count = var.compute_cluster_key_pair != null ? length(var.compute_cluster_key_pair) : 0
-  name = var.compute_cluster_key_pair[count.index]
+  name  = var.compute_cluster_key_pair[count.index]
 }
 
 data "ibm_is_ssh_key" "storage_ssh_key" {
   count = length(var.storage_cluster_key_pair)
-  name = var.storage_cluster_key_pair[count.index]
+  name  = var.storage_cluster_key_pair[count.index]
 }
 
 data "ibm_is_ssh_key" "client_ssh_key" {
   count = var.client_cluster_key_pair != null ? length(var.client_cluster_key_pair) : 0
-  name = var.client_cluster_key_pair[count.index]
+  name  = var.client_cluster_key_pair[count.index]
 }
 
 data "ibm_is_ssh_key" "encryption_ssh_key" {
   count = var.scale_encryption_instance_key_pair != null ? length(var.scale_encryption_instance_key_pair) : 0
-  name = var.scale_encryption_instance_key_pair[count.index]
+  name  = var.scale_encryption_instance_key_pair[count.index]
 }
 
 data "ibm_is_image" "bastion_image" {
@@ -230,9 +230,9 @@ locals {
   validate_bastion_os_msg = "Error: Invalid custom image name. The solution currently supports only ubuntu stock images of any version available on that region."
   validate_bastion_os_chk = regex(
     "^${local.validate_bastion_os_msg}$",
-    ( local.validate_bastion_os
-    ? local.validate_bastion_os_msg
-    : "" ) )
+    (local.validate_bastion_os
+      ? local.validate_bastion_os_msg
+  : ""))
 }
 
 locals {
@@ -249,6 +249,11 @@ locals {
   storage_image_mapping_entry_found = contains(keys(local.storage_image_region_map), var.storage_vsi_osimage_name)
   storage_image_id                  = var.storage_type == "evaluation" ? lookup(lookup(local.evaluation_image_region_map, one(keys(local.evaluation_image_region_map))), local.vpc_region) : local.storage_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_vsi_osimage_name), local.vpc_region) : data.ibm_is_image.storage_image[0].id
   storage_osimage_name              = var.storage_type == "evaluation" ? one(keys(local.evaluation_image_region_map)) : local.storage_image_mapping_entry_found ? var.storage_vsi_osimage_name : data.ibm_is_image.storage_image[0].name
+
+  // Check whether an entry is found in the mapping file for the given bare metal storage node image
+  storage_bare_metal_image_mapping_entry_found = contains(keys(local.storage_image_region_map), var.storage_bare_metal_osimage_name)
+  storage_bare_metal_image_id                  = local.storage_bare_metal_image_mapping_entry_found ? lookup(lookup(local.storage_image_region_map, var.storage_bare_metal_osimage_name), local.vpc_region) : data.ibm_is_image.bare_metal_image[0].id
+  storage_bare_metal_osimage_name              = local.storage_bare_metal_image_mapping_entry_found ? var.storage_bare_metal_osimage_name : data.ibm_is_image.bare_metal_image[0].name
 
   // Check whether an entry is found in the mapping file for the given GKLM image
   scale_encryption_image_mapping_entry_found = contains(keys(local.scale_encryption_image_region_map), var.scale_encryption_vsi_osimage_name)
@@ -273,19 +278,12 @@ data "ibm_is_image" "storage_image" {
 
 data "ibm_is_image" "bare_metal_image" {
   name  = var.storage_bare_metal_osimage_name
-#  count = var.storage_type == "persistent" ? 1 : 0
+  count = local.storage_bare_metal_image_mapping_entry_found ? 0 : 1
 }
 
 data "ibm_is_image" "scale_encryption_image" {
   name  = var.scale_encryption_vsi_osimage_name
   count = local.scale_encryption_image_mapping_entry_found ? 0 : 1
-}
-
-locals {
-  // Validate the total storage count for the total_storage_cluster_instance variable, as this validation is not possible to be done on Variables decided to validate this during the apply plan process. For both persistent and scratch type the validation happens at main.tf directly
-  validate_total_storage_cluster_instances_cnd = var.storage_type == "persistent" ? var.total_storage_cluster_instances >= 2 && var.total_storage_cluster_instances <= 42 : var.total_storage_cluster_instances >= 2 && var.total_storage_cluster_instances <= 64
-  total_storage_cluster_instances_msg          = "Specified input \"total_storage_cluster_instances\" must be in between the range of 2 and 42 while storage type is persistent otherwise it should be in range of 2 and 64.Please provide the appropriate range of value."
-  validate_total_storage_cluster_instances_chk = regex("^${local.total_storage_cluster_instances_msg}$", ((local.validate_total_storage_cluster_instances_cnd ? local.total_storage_cluster_instances_msg : "") ))
 }
 
 locals {
@@ -301,8 +299,8 @@ locals {
   storage_gui_password_msg          = "Storage cluster GUI password should not contain username."
   validate_storage_gui_password_chk = regex("^${local.storage_gui_password_msg}$", (local.validate_storage_gui_password_cnd ? local.storage_gui_password_msg : ""))
 
-  validate_compute_gui_password_cnd = var.total_compute_cluster_instances > 0 ? ((replace(lower(var.compute_cluster_gui_password), lower(var.compute_cluster_gui_username), "") == lower(var.compute_cluster_gui_password)) && can(regex("^.{8,}$", var.compute_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.compute_cluster_gui_password)!= "") && can(regex("[a-z]{1,}", var.compute_cluster_gui_password) != "") && can(regex("[A-Z]{1,}",var.compute_cluster_gui_password ) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.compute_cluster_gui_password) != "" )&& trimspace(var.compute_cluster_gui_password) != "" && can(regex("^[!@#$%^&*()_+=-]", var.compute_cluster_gui_password)) == false) : true
-  compute_gui_password_msg          = "Compute cluster GUI password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username and it should not start with a special character." 
+  validate_compute_gui_password_cnd = var.total_compute_cluster_instances > 0 ? ((replace(lower(var.compute_cluster_gui_password), lower(var.compute_cluster_gui_username), "") == lower(var.compute_cluster_gui_password)) && can(regex("^.{8,}$", var.compute_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.compute_cluster_gui_password) != "") && can(regex("[a-z]{1,}", var.compute_cluster_gui_password) != "") && can(regex("[A-Z]{1,}", var.compute_cluster_gui_password) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.compute_cluster_gui_password) != "") && trimspace(var.compute_cluster_gui_password) != "" && can(regex("^[!@#$%^&*()_+=-]", var.compute_cluster_gui_password)) == false) : true
+  compute_gui_password_msg          = "Compute cluster GUI password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username and it should not start with a special character."
   validate_compute_gui_password_chk = regex("^${local.compute_gui_password_msg}$", (local.validate_compute_gui_password_cnd ? local.compute_gui_password_msg : ""))
 }
 
@@ -325,88 +323,88 @@ locals {
 
   // GKLM password validation
   validate_GKLM_pwd = (var.scale_encryption_enabled && length(var.scale_encryption_admin_password) >= 8 && length(var.scale_encryption_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.scale_encryption_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^.*[~@_+:].*$", var.scale_encryption_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.scale_encryption_admin_password)) || !var.scale_encryption_enabled
-  password_msg       = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
+  password_msg      = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
   validate_GKLM_pwd_chk = regex(
     "^${local.password_msg}$",
   (local.validate_GKLM_pwd ? local.password_msg : ""))
 
   // GKLM keypair validation
-  validate_GKLM_keypair  = (var.scale_encryption_enabled && var.scale_encryption_instance_key_pair == "")
-  keypair_msg            = "SSH-Keypair should not be empty when encryption is enabled."
-  gklm_keypair_check     = regex("^${local.keypair_msg}$", (local.validate_GKLM_keypair ? "" : local.keypair_msg ))
+  validate_GKLM_keypair = (var.scale_encryption_enabled && var.scale_encryption_instance_key_pair == "")
+  keypair_msg           = "SSH-Keypair should not be empty when encryption is enabled."
+  gklm_keypair_check    = regex("^${local.keypair_msg}$", (local.validate_GKLM_keypair ? "" : local.keypair_msg))
 }
 
 # LDAP Variable Validation
 locals {
-  ldap_server_status          = var.enable_ldap == true && var.ldap_server == "null" ? false : true
+  ldap_server_status = var.enable_ldap == true && var.ldap_server == "null" ? false : true
 
   // LDAP base DNS Validation
-  validate_ldap_basedns       = (var.enable_ldap && trimspace(var.ldap_basedns) != "") || !var.enable_ldap
-  ldap_basedns_msg            = "If LDAP is enabled, then the base DNS should not be empty or null. Need a valid domain name."
-  validate_ldap_basedns_chk   = regex(
+  validate_ldap_basedns = (var.enable_ldap && trimspace(var.ldap_basedns) != "") || !var.enable_ldap
+  ldap_basedns_msg      = "If LDAP is enabled, then the base DNS should not be empty or null. Need a valid domain name."
+  validate_ldap_basedns_chk = regex(
     "^${local.ldap_basedns_msg}$",
   (local.validate_ldap_basedns ? local.ldap_basedns_msg : ""))
 
   // LDAP base existing LDAP server
-  validate_ldap_server       = (var.enable_ldap && trimspace(var.ldap_server) != "") || !var.enable_ldap
-  ldap_server_msg            = "IP of existing LDAP server. If none given a new ldap server will be created. It should not be empty."
-  validate_ldap_server_chk   = regex(
+  validate_ldap_server = (var.enable_ldap && trimspace(var.ldap_server) != "") || !var.enable_ldap
+  ldap_server_msg      = "IP of existing LDAP server. If none given a new ldap server will be created. It should not be empty."
+  validate_ldap_server_chk = regex(
     "^${local.ldap_server_msg}$",
   (local.validate_ldap_server ? local.ldap_server_msg : ""))
 
   // LDAP Admin Password Validation
-  validate_ldap_adm_pwd       = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_admin_password) >= 8 && length(var.ldap_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_admin_password)) && can(regex("^.*[~@_+:].*$", var.ldap_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_admin_password)) : local.ldap_server_status
-  ldap_adm_password_msg       = "Password that is used for LDAP admin.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
-  validate_ldap_adm_pwd_chk   = regex(
+  validate_ldap_adm_pwd = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_admin_password) >= 8 && length(var.ldap_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_admin_password)) && can(regex("^.*[~@_+:].*$", var.ldap_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_admin_password)) : local.ldap_server_status
+  ldap_adm_password_msg = "Password that is used for LDAP admin.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
+  validate_ldap_adm_pwd_chk = regex(
     "^${local.ldap_adm_password_msg}$",
   (local.validate_ldap_adm_pwd ? local.ldap_adm_password_msg : ""))
 
   // LDAP User Validation
   validate_ldap_usr = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_user_name) >= 4 && length(var.ldap_user_name) <= 32 && var.ldap_user_name != "" && can(regex("^[a-zA-Z0-9_-]*$", var.ldap_user_name)) && trimspace(var.ldap_user_name) != "") : local.ldap_server_status
-  ldap_usr_msg       = "The input for 'ldap_user_name' is considered invalid. The username must be within the range of 4 to 32 characters and may only include letters, numbers, hyphens, and underscores. Spaces are not permitted."
-  validate_ldap_usr_chk   = regex(
+  ldap_usr_msg      = "The input for 'ldap_user_name' is considered invalid. The username must be within the range of 4 to 32 characters and may only include letters, numbers, hyphens, and underscores. Spaces are not permitted."
+  validate_ldap_usr_chk = regex(
     "^${local.ldap_usr_msg}$",
   (local.validate_ldap_usr ? local.ldap_usr_msg : ""))
 
   // LDAP User Password Validation
-  validate_ldap_usr_pwd       = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_user_password) >= 8 && length(var.ldap_user_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_user_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_user_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_user_password)) && can(regex("^.*[~@_+:].*$", var.ldap_user_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_user_password)) : local.ldap_server_status
-  ldap_usr_password_msg       = "Password that is used for LDAP user.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
-  validate_ldap_usr_pwd_chk   = regex(
+  validate_ldap_usr_pwd = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_user_password) >= 8 && length(var.ldap_user_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_user_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_user_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_user_password)) && can(regex("^.*[~@_+:].*$", var.ldap_user_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_user_password)) : local.ldap_server_status
+  ldap_usr_password_msg = "Password that is used for LDAP user.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
+  validate_ldap_usr_pwd_chk = regex(
     "^${local.ldap_usr_password_msg}$",
-  (local.validate_ldap_usr_pwd ? local.ldap_usr_password_msg : ""))  
+  (local.validate_ldap_usr_pwd ? local.ldap_usr_password_msg : ""))
 
   // LDAP Keypair Validation
-  validate_LDAP_keypair  = (var.enable_ldap && var.ldap_instance_key_pair == null)
-  ldap_keypair_msg       = "SSH-Keypair should not be empty when LDAP is enabled."
-  ldap_keypair_check     = regex("^${local.ldap_keypair_msg}$", (local.validate_LDAP_keypair ? "" : local.ldap_keypair_msg ))
+  validate_LDAP_keypair = (var.enable_ldap && var.ldap_instance_key_pair == null)
+  ldap_keypair_msg      = "SSH-Keypair should not be empty when LDAP is enabled."
+  ldap_keypair_check    = regex("^${local.ldap_keypair_msg}$", (local.validate_LDAP_keypair ? "" : local.ldap_keypair_msg))
 }
 
 locals {
-    schematics_ip = [
-      "169.45.235.176/28",
-      "169.55.82.128/27",
-      "169.60.115.32/27",
-      "169.63.150.144/28",
-      "169.62.1.224/28",
-      "169.62.53.64/27",
-      "150.238.230.128/27",
-      "169.63.254.64/28",
-      "169.47.104.160/28",
-      "169.61.191.64/27",
-      "169.60.172.144/28",
-      "169.62.204.32/27",
-      "158.175.106.64/27",
-      "158.175.138.176/28",
-      "141.125.79.160/28",
-      "141.125.142.96/27",
-      "158.176.111.64/27",
-      "158.176.134.80/28",
-      "149.81.123.64/27",
-      "149.81.135.64/28",
-      "158.177.210.176/28",
-      "158.177.216.144/28",
-      "161.156.138.80/28",
-      "159.122.111.224/27",
-      "161.156.37.160/27"
-    ]
- }
+  schematics_ip = [
+    "169.45.235.176/28",
+    "169.55.82.128/27",
+    "169.60.115.32/27",
+    "169.63.150.144/28",
+    "169.62.1.224/28",
+    "169.62.53.64/27",
+    "150.238.230.128/27",
+    "169.63.254.64/28",
+    "169.47.104.160/28",
+    "169.61.191.64/27",
+    "169.60.172.144/28",
+    "169.62.204.32/27",
+    "158.175.106.64/27",
+    "158.175.138.176/28",
+    "141.125.79.160/28",
+    "141.125.142.96/27",
+    "158.176.111.64/27",
+    "158.176.134.80/28",
+    "149.81.123.64/27",
+    "149.81.135.64/28",
+    "158.177.210.176/28",
+    "158.177.216.144/28",
+    "161.156.138.80/28",
+    "159.122.111.224/27",
+    "161.156.37.160/27"
+  ]
+}

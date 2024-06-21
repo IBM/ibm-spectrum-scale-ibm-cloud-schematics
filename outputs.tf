@@ -39,6 +39,6 @@ output "vpc_custom_resolver_id" {
 }
 
 output "ssh_command" { # This command works only if you have your id_rsa in the right location for that region
-  value = "ssh -J ubuntu@${module.bastion_attach_fip.floating_ip_addr} vpcuser@${module.bootstrap_vsi.vsi_private_ip}"
+  value       = "ssh -J ubuntu@${module.bastion_attach_fip.floating_ip_addr} vpcuser@${module.bootstrap_vsi.vsi_private_ip}"
   description = "SSH command that can be used to login to bootstrap node to destroy the cluster. Use the same command to ssh to any of storage/compute node but update the respective ip of the nodes in place of bootstrap node ip.(Examples: ssh -J <ubuntu@bastionip> <vpcuser@ip of storage/compute node>)"
 }
