@@ -55,11 +55,13 @@ locals{
   cluster_compute_subnet_crn            = local.vpc_create_separate_subnets == true ? (var.vpc_name == null || var.vpc_compute_subnet == null ? module.compute_private_subnet[0].subnet_crn : data.ibm_is_subnet.existing_compute_subnet[0].crn) : (var.vpc_name == null ? module.storage_private_subnet[0].subnet_crn : data.ibm_is_subnet.existing_storage_subnet[0].crn)
   cluster_dns_service_id                = var.vpc_dns_service_name == null ? module.dns_service[0].resource_guid : [data.ibm_resource_instance.existing_dns_resource_instance[0].guid]
   cluster_custom_resolver_id            = var.vpc_dns_custom_resolver_name == null ? module.custom_resolver_storage_subnet[0].custom_resolver_id : data.ibm_dns_custom_resolvers.existing_dns_custom_resolver_id[0].custom_resolvers[0].custom_resolver_id
+  /*
   cluster_storage_dns_zone_id           = var.vpc_name == null && local.existing_storage_dns_zone_id == null ? module.storage_dns_zone[0].dns_zone_id : local.existing_storage_dns_zone_id
   cluster_compute_dns_zone_id           = var.vpc_name == null && local.existing_compute_dns_zone_id == null ? module.compute_dns_zone[0].dns_zone_id : local.existing_compute_dns_zone_id
   cluster_scale_encryption_dns_zone_id  = var.scale_encryption_enabled == true && var.vpc_name == null || local.existing_gklm_dns_zone_id == null ? module.scale_encryption_dns_zone[0].dns_zone_id : local.existing_gklm_dns_zone_id
   cluster_protocol_dns_zone_id          = local.scale_ces_enabled == true && var.vpc_name == null || local.existing_protocol_dns_zone_id == null ? module.protocol_dns_zone[0].dns_zone_id : local.existing_protocol_dns_zone_id
   cluster_client_dns_zone_id            = local.create_client_cluster == true && var.vpc_name == null || local.existing_client_dns_zone_id == null ? module.client_dns_zone[0].dns_zone_id : local.existing_client_dns_zone_id
+  */
   cluster_gateway                       = local.existing_public_gateway_zone == "" ? module.common_public_gw[0].public_gw_id : local.existing_pgs
   cluster_vpc_crn                       = var.vpc_name == null ? module.vpc[0].vpc_crn : local.existing_vpc_crn
 }
@@ -116,7 +118,7 @@ module "dns_service" {
 }
 
 module "storage_dns_zone" {
-  count          = local.existing_storage_dns_zone_id == null ? 1:0
+  count          = 1
   source         = "./resources/ibmcloud/network/dns_zone"
   dns_zone_count = 1
   dns_domain     = var.vpc_storage_cluster_dns_domain
@@ -126,16 +128,16 @@ module "storage_dns_zone" {
 }
 
 module "storage_dns_permitted_network" {
-  count           = var.vpc_name == null || local.existing_storage_pm_ntw_id == null ? 1 : 0 
+  count           = 1
   source          = "./resources/ibmcloud/network/dns_permitted_network"
   permitted_count = 1
   instance_id     = local.cluster_dns_service_id
-  zone_id         = local.cluster_storage_dns_zone_id
+  zone_id         = module.storage_dns_zone[0].dns_zone_id
   vpc_crn         = local.cluster_vpc_crn
 }
 
 module "compute_dns_zone" {
-  count          = local.existing_compute_dns_zone_id == null ? 1:0
+  count          = var.total_compute_cluster_instances > 0 ? 1 : 0
   source         = "./resources/ibmcloud/network/dns_zone"
   dns_zone_count = 1
   dns_domain     = var.vpc_compute_cluster_dns_domain
@@ -146,17 +148,17 @@ module "compute_dns_zone" {
 }
 
 module "compute_dns_permitted_network" {
-  count           = var.vpc_name == null || local.existing_compute_pm_ntw_id == null ? 1 : 0
+  count           = var.total_compute_cluster_instances > 0 ? 1 : 0
   source          = "./resources/ibmcloud/network/dns_permitted_network"
   permitted_count = local.vpc_create_separate_subnets == true ? 1 : 0
   instance_id     = local.cluster_dns_service_id
-  zone_id         = local.cluster_compute_dns_zone_id
+  zone_id         = module.compute_dns_zone[0].dns_zone_id
   vpc_crn         = local.cluster_vpc_crn
   depends_on      = [module.storage_dns_permitted_network]
 }
 
 module "protocol_dns_zone" {
-  count          = local.existing_protocol_dns_zone_id == null ? 1 : 0
+  count          = local.scale_ces_enabled == true ? 1 : 0
   source         = "./resources/ibmcloud/network/dns_zone"
   dns_zone_count = 1
   dns_domain     = var.vpc_protocol_cluster_dns_domain
@@ -167,17 +169,17 @@ module "protocol_dns_zone" {
 }
 
 module "protocol_dns_permitted_network" {
-  count           = local.scale_ces_enabled == true && var.vpc_name == null || local.existing_protocol_pm_ntw_id == null ? 1 : 0
+  count           = local.scale_ces_enabled == true ? 1 : 0
   source          = "./resources/ibmcloud/network/dns_permitted_network"
   permitted_count = 1
   instance_id     = local.cluster_dns_service_id
-  zone_id         = local.cluster_protocol_dns_zone_id
+  zone_id         = module.protocol_dns_zone[0].dns_zone_id
   vpc_crn         = local.cluster_vpc_crn
   depends_on      = [module.compute_dns_permitted_network]
 }
 
 module "client_dns_zone" {
-  count          = local.existing_client_dns_zone_id == null ? 1 : 0
+  count          = local.create_client_cluster == true ? 1 : 0
   source         = "./resources/ibmcloud/network/dns_zone"
   dns_zone_count = 1
   dns_domain     = var.vpc_client_cluster_dns_domain
@@ -188,17 +190,17 @@ module "client_dns_zone" {
 }
 
 module "client_dns_permitted_network" {
-  count           = local.create_client_cluster == true && var.vpc_name == null || local.existing_client_pm_ntw_id == null ? 1 : 0
+  count           = local.create_client_cluster == true ? 1 : 0
   source          = "./resources/ibmcloud/network/dns_permitted_network"
   permitted_count = 1
   instance_id     = local.cluster_dns_service_id
-  zone_id         = local.cluster_client_dns_zone_id
+  zone_id         = module.client_dns_zone[0].dns_zone_id
   vpc_crn         = local.cluster_vpc_crn
   depends_on      = [module.protocol_dns_permitted_network]
 }
 
 module "scale_encryption_dns_zone" {
-  count          = local.existing_gklm_dns_zone_id == null ? 1 : 0
+  count          = var.scale_encryption_enabled == true ? 1 : 0
   source         = "./resources/ibmcloud/network/dns_zone"
   dns_zone_count = var.scale_encryption_enabled == true ? 1 : 0
   dns_domain     = var.scale_encryption_dns_domain
@@ -209,11 +211,11 @@ module "scale_encryption_dns_zone" {
 }
 
 module "gklm_dns_permitted_network" {
-  count           = var.scale_encryption_enabled == true && (var.vpc_name == null || local.existing_gklm_pm_ntw_id == null) ? 1 : 0
+  count           = var.scale_encryption_enabled == true ? 1 : 0
   source          = "./resources/ibmcloud/network/dns_permitted_network"
   permitted_count = local.vpc_create_separate_subnets == true ? 1 : 0
   instance_id     = local.cluster_dns_service_id
-  zone_id         = length(module.scale_encryption_dns_zone) > 0 ? local.cluster_scale_encryption_dns_zone_id : null
+  zone_id         = module.scale_encryption_dns_zone[0].dns_zone_id
   vpc_crn         = local.cluster_vpc_crn
   depends_on      = [module.storage_dns_permitted_network, module.compute_dns_permitted_network]
 }
@@ -341,6 +343,25 @@ module "bootstrap_ssh_keys" {
   turn_on = true
 }
 
+// The resource is used to validate the existing LDAP server connection.
+resource "null_resource" "validate_ldap_server_connection" {
+  count = var.enable_ldap == true && var.ldap_server != "null" ? 1 : 0
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = module.bastion_proxy_ssh_keys.private_key_content
+    host        = module.bastion_attach_fip.floating_ip_addr
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "if openssl s_client -connect '${var.ldap_server}:389' </dev/null 2>/dev/null | grep -q 'CONNECTED'; then echo 'The connection to the existing LDAP server ${var.ldap_server} was successfully established.'; else echo 'The connection to the existing LDAP server ${var.ldap_server} failed, please establish it.'; exit 1; fi",
+    ]
+  }
+  depends_on = [
+    module.bastion_vsi
+  ]
+}
+
 locals {
   turn_on_init                  = fileexists("/tmp/.schematics/success") ? false : true
   bootstrap_path                = "/opt/IBM"
@@ -354,7 +375,7 @@ locals {
   zones                         = jsonencode(var.vpc_availability_zones)
   compute_private_subnets       = (var.vpc_name == null || var.vpc_name != null) && var.vpc_compute_subnet == null ? tostring(element(module.compute_private_subnet[0].subnet_id, 0)) : local.existing_compute_subnet_id
   storage_private_subnets       = (var.vpc_name == null || var.vpc_name != null) && var.vpc_storage_subnet == null ? tostring(element(module.storage_private_subnet[0].subnet_id, 0)) : local.existing_storage_subnet_id
-  protocol_private_subnets       = local.scale_ces_enabled ? (var.vpc_name == null || var.vpc_name != null) && var.vpc_protocol_subnet == null ? tostring(element(module.protocol_private_subnet[0].subnet_id, 0)) : local.existing_protocol_subnet_id : ""
+  protocol_private_subnets      = local.scale_ces_enabled ? (var.vpc_name == null || var.vpc_name != null) && var.vpc_protocol_subnet == null ? tostring(element(module.protocol_private_subnet[0].subnet_id, 0)) : local.existing_protocol_subnet_id : ""
   scale_cluster_resource_tags   = jsonencode(local.tags)
   products                      = var.scale_encryption_enabled == false ? "scale" : "scale,gklm"
   compute_node_count            = var.total_compute_cluster_instances
@@ -370,13 +391,13 @@ locals {
   scale_encryption_instance_key_pair = var.scale_encryption_enabled ? jsonencode(var.scale_encryption_instance_key_pair) : jsonencode([])
   encryption_node_count         = var.scale_encryption_enabled ? var.scale_encryption_server_count : "0"
   enable_sec_interface          = local.scale_ces_enabled == false && data.ibm_is_instance_profile.compute_vsi.bandwidth[0].value >= 64000 ? true : false
-  ldap_instance_key_pair        = var.ldap_basedns != null ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
+  ldap_instance_key_pair        = var.enable_ldap ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
   scale_cloud_install_repo_url  = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_repo_tag  = "v2.3.1"
+  scale_cloud_install_repo_tag  = "v2.3.2"
   scale_cloud_infra_repo_url    = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name   = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag    = "ibmcloud_v2.3.1"
+  scale_cloud_infra_repo_tag    = "ibmcloud_v2.3.2"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -392,8 +413,8 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "vpc_custom_resolver_id": "${local.cluster_custom_resolver_id}",
     "vpc_compute_cluster_dns_service_id": "${local.cluster_dns_service_id[0]}",
     "vpc_storage_cluster_dns_service_id": "${local.cluster_dns_service_id[0]}",
-    "vpc_compute_cluster_dns_zone_id": "${local.cluster_compute_dns_zone_id}",
-    "vpc_storage_cluster_dns_zone_id": "${local.cluster_storage_dns_zone_id}",
+    "vpc_compute_cluster_dns_zone_id": "${var.total_compute_cluster_instances > 0 ? module.compute_dns_zone[0].dns_zone_id : "null"}",
+    "vpc_storage_cluster_dns_zone_id": "${module.storage_dns_zone[0].dns_zone_id}",
     "vpc_compute_cluster_dns_domain": "${var.vpc_compute_cluster_dns_domain}",
     "vpc_storage_cluster_dns_domain": "${var.vpc_storage_cluster_dns_domain}",
     "vpc_create_activity_tracker": ${local.vpc_create_activity_tracker},
@@ -434,7 +455,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "gklm_vsi_osimage_id": "${var.scale_encryption_enabled ? local.scale_encryption_image_id : "null"}",
     "gklm_instance_key_pair": ${local.scale_encryption_instance_key_pair},
     "gklm_instance_dns_service_id": "${var.scale_encryption_enabled ? local.cluster_dns_service_id[0] : "null"}",
-    "gklm_instance_dns_zone_id": "${var.scale_encryption_enabled ? local.cluster_scale_encryption_dns_zone_id : "null"}",
+    "gklm_instance_dns_zone_id": "${var.scale_encryption_enabled ? module.scale_encryption_dns_zone[0].dns_zone_id : "null"}",
     "gklm_instance_dns_domain": "${var.scale_encryption_enabled ? var.scale_encryption_dns_domain : "null"}",
     "total_compute_cluster_instances": ${local.compute_node_count},
     "total_storage_cluster_instances": ${local.storage_node_count},
@@ -442,7 +463,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "vpc_protocol_cluster_private_subnets": ["${local.protocol_private_subnets}"],
     "protocol_vsi_profile": "${local.scale_ces_enabled ? var.protocol_vsi_profile : "null"}",
     "vpc_protocol_cluster_dns_service_id": "${local.scale_ces_enabled ? local.cluster_dns_service_id[0] : "null"}",
-    "vpc_protocol_cluster_dns_zone_id": "${local.scale_ces_enabled ? local.cluster_protocol_dns_zone_id : "null"}",
+    "vpc_protocol_cluster_dns_zone_id": "${local.scale_ces_enabled ? module.protocol_dns_zone[0].dns_zone_id : "null"}",
     "vpc_protocol_cluster_dns_domain": "${local.scale_ces_enabled ? var.vpc_protocol_cluster_dns_domain : "null"}",
     "total_protocol_cluster_instances": ${local.protocol_node_count},
     "filesets": ${local.filesets},
@@ -450,14 +471,15 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "client_vsi_profile": "${var.client_vsi_profile}",
     "client_vsi_osimage_name": "${var.client_vsi_osimage_name}",
     "vpc_client_cluster_dns_service_id": "${local.create_client_cluster ? local.cluster_dns_service_id[0] : "null"}",
-    "vpc_client_cluster_dns_zone_id": "${local.create_client_cluster ? local.cluster_client_dns_zone_id : "null"}",
+    "vpc_client_cluster_dns_zone_id": "${local.create_client_cluster ? module.client_dns_zone[0].dns_zone_id : "null"}",
     "vpc_client_cluster_dns_domain": "${local.create_client_cluster ? var.vpc_client_cluster_dns_domain : "null"}",
     "client_cluster_key_pair": ${local.client_cluster_key_pair},
-    "ldap_basedns": "${var.ldap_basedns != "null" ? var.ldap_basedns : "null" }",
-    "ldap_server": "${var.ldap_basedns != "null" && var.ldap_server != "null" ? var.ldap_server : "null" }",
-    "ldap_admin_password": "${var.ldap_basedns != "null" ? var.ldap_admin_password : "null" }",
-    "ldap_user_name": "${var.ldap_basedns != "null" ? var.ldap_user_name : "null" }",
-    "ldap_user_password": "${var.ldap_basedns != "null" ? var.ldap_user_password : "null" }",
+    "enable_ldap": "${var.enable_ldap}",
+    "ldap_basedns": "${var.enable_ldap ? var.ldap_basedns : "null" }",
+    "ldap_server": "${var.enable_ldap && var.ldap_server != "null" ? var.ldap_server : "null"}",
+    "ldap_admin_password": "${var.enable_ldap ? var.ldap_admin_password : "null" }",
+    "ldap_user_name": "${var.enable_ldap && var.ldap_server == "null" ? var.ldap_user_name : "null" }",
+    "ldap_user_password": "${var.enable_ldap && var.ldap_server == "null" ? var.ldap_user_password : "null" }",
     "ldap_instance_key_pair": ${local.ldap_instance_key_pair},
     "ldap_vsi_profile": "${var.ldap_vsi_profile}",
     "ldap_vsi_osimage_name": "${var.ldap_vsi_osimage_name}"
@@ -504,9 +526,10 @@ module "bootstrap_vsi" {
     module.dns_service,
     module.storage_dns_zone,
     module.storage_dns_permitted_network,
-    module.compute_dns_zone,
-    module.compute_dns_permitted_network,
-    module.custom_resolver_storage_subnet
+    # module.compute_dns_zone,
+    # module.compute_dns_permitted_network,
+    module.custom_resolver_storage_subnet,
+    null_resource.validate_ldap_server_connection
   ]
 }
 
@@ -563,7 +586,7 @@ resource "null_resource" "scale_resource_provisioner" {
       "if [ ! -d ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale ]; then sudo git clone -b ${local.scale_cloud_infra_repo_tag} ${local.scale_cloud_infra_repo_url} ${local.remote_ansible_path}/${local.scale_cloud_infra_repo_name}/collections/ansible_collections/ibm/spectrum_scale; fi",
       "sudo ln -fs /usr/local/bin/ansible-playbook /usr/bin/ansible-playbook",
       "sudo cp ${local.remote_inputs_path} ${local.remote_terraform_path}",
-      "export IC_API_KEY=${var.ibmcloud_api_key} && sudo -E terraform -chdir=${local.remote_terraform_path} init && sudo -E terraform -chdir=${local.remote_terraform_path} apply -parallelism=${var.TF_PARALLELISM} -var 'create_scale_cluster=false' -auto-approve"
+      "export IC_API_KEY=${var.ibmcloud_api_key} && export TF_LOG=${var.TF_LOG} && sudo -E terraform -chdir=${local.remote_terraform_path} init && sudo -E terraform -chdir=${local.remote_terraform_path} apply -parallelism=${var.TF_PARALLELISM} -var 'create_scale_cluster=false' -auto-approve"
     ]
   }
   
@@ -575,7 +598,8 @@ resource "null_resource" "scale_resource_provisioner" {
     module.bootstrap_vsi,
     module.bastion_attach_fip,
     time_sleep.wait_60_seconds,
-    local_sensitive_file.prepare_scale_vsi_input
+    local_sensitive_file.prepare_scale_vsi_input,
+    null_resource.validate_ldap_server_connection
   ]
 }
 
@@ -598,7 +622,7 @@ resource "null_resource" "scale_cluster_provisioner" {
 
   provisioner "remote-exec" {
     inline = [
-      "export IC_API_KEY=${var.ibmcloud_api_key} && sudo -E terraform -chdir=${local.remote_terraform_path} apply -parallelism=${var.TF_PARALLELISM} -var 'create_scale_cluster=true' -auto-approve"
+      "export IC_API_KEY=${var.ibmcloud_api_key} && export TF_LOG=${var.TF_LOG} && sudo -E terraform -chdir=${local.remote_terraform_path} apply -parallelism=${var.TF_PARALLELISM} -var 'create_scale_cluster=true' -auto-approve"
     ]
   }
   
@@ -611,7 +635,8 @@ resource "null_resource" "scale_cluster_provisioner" {
     module.bastion_attach_fip,
     time_sleep.wait_60_seconds,
     local_sensitive_file.prepare_scale_vsi_input,
-    null_resource.scale_resource_provisioner
+    null_resource.scale_resource_provisioner,
+    null_resource.validate_ldap_server_connection
   ]
 }
 
@@ -623,6 +648,7 @@ resource "null_resource" "scale_cluster_destroyer" {
     conn_bastion_private_key   = module.bastion_proxy_ssh_keys.private_key_content
     conn_ibmcloud_api_key      = var.ibmcloud_api_key
     conn_remote_terraform_path = local.remote_terraform_path
+    conn_terraform_log_level   = var.TF_LOG
   }
 
   connection {
@@ -640,7 +666,7 @@ resource "null_resource" "scale_cluster_destroyer" {
     when       = destroy
     on_failure = fail
     inline = [
-      "export IC_API_KEY=${self.triggers.conn_ibmcloud_api_key} && sudo -E terraform -chdir=${self.triggers.conn_remote_terraform_path} destroy -auto-approve"
+      "export IC_API_KEY=${self.triggers.conn_ibmcloud_api_key} && export TF_LOG=${self.triggers.conn_terraform_log_level} && sudo -E terraform -chdir=${self.triggers.conn_remote_terraform_path} destroy -auto-approve"
     ]
   }
 }

@@ -10,6 +10,12 @@ variable "TF_VERSION" {
   description = "The version of the Terraform engine that's used in the Schematics workspace."
 }
 
+variable "TF_LOG" {
+  type        = string
+  default     = "INFO"
+  description = "The Terraform log level used for output in the Schematics workspace."
+}
+
 variable "ibmcloud_api_key" {
   type        = string
   description = "This is the IBM Cloud API key for the IBM Cloud account where the IBM Storage Scale cluster needs to be deployed. For more information on how to create an API key, see [Managing user API keys](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui)."
@@ -105,13 +111,13 @@ variable "vpc_compute_cluster_private_subnets_cidr_blocks" {
 variable "vpc_compute_cluster_dns_domain" {
   type        = string
   default     = "compscale.com"
-  description = "IBM Cloud DNS Services domain name to be used for the compute cluster."
+  description = "IBM Cloud DNS Services domain name to be used for the compute cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
 }
 
 variable "vpc_storage_cluster_dns_domain" {
   type        = string
   default     = "strgscale.com"
-  description = "IBM Cloud DNS Services domain name to be used for the storage cluster."
+  description = "IBM Cloud DNS Services domain name to be used for the storage cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
 }
 
 variable "remote_cidr_blocks" {
@@ -234,21 +240,15 @@ variable "compute_cluster_key_pair" {
 variable "compute_cluster_gui_username" {
   type        = string
   sensitive   = true
+  default     = ""
   description = "GUI username to perform system management and monitoring tasks on the compute cluster. The Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
-  validation {
-    condition = var.compute_cluster_gui_username == "" || (length(var.compute_cluster_gui_username) >= 4 && length(var.compute_cluster_gui_username) <= 32)
-    error_message = "Specified input for \"storage_cluster_gui_username\" is not valid. username should be greater or equal to 4 letters."
-  }
 }
 
 variable "compute_cluster_gui_password" {
   type        = string
   sensitive   = true
-  description = "Password that is used for logging in to the compute cluster through the GUI. The password should contain a minimum of eight characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username."
-  validation {
-    condition = can(regex("^.{8,}$", var.compute_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.compute_cluster_gui_password)!= "") && can(regex("[a-z]{1,}", var.compute_cluster_gui_password) != "") && can(regex("[A-Z]{1,}",var.compute_cluster_gui_password ) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.compute_cluster_gui_password) != "" )&& trimspace(var.compute_cluster_gui_password) != ""
-    error_message = "Password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username."
-  }
+  default     = ""
+  description = "The compute cluster GUI password is used for logging in to the compute cluster through the GUI. The password should contain a minimum of 8 characters.  For a strong password, use a combination of uppercase and lowercase letters, one number and a special character. Make sure that the password doesn't contain the username and it should not start with a special character."
 }
 
 variable "storage_vsi_profile" {
@@ -264,18 +264,18 @@ variable "storage_vsi_profile" {
 
 variable "total_compute_cluster_instances" {
   type        = number
-  default     = 3
+  default     = 0
   description = "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
   validation {
-    condition = (var.total_compute_cluster_instances >= 0 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0 )
+    condition = (var.total_compute_cluster_instances >= 3 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0 )
     error_message = "Specified input \"total_compute_cluster_instances\" must be in range(3, 64) or it can be 0. Please provide the appropriate range of value."
   }
 }
 
 variable "total_storage_cluster_instances" { # The validation from the variable has been removed because we want validation to be performed for two different use case i.e.(Persistent and Scratch) both of them are done at main.tf file
   type        = number
-  default     = 4
-  description = "Total number of storage cluster instances that you need to provision. A minimum of three nodes and a maximum of 18 nodes are supported if the storage type selected is scratch. A minimum of three nodes and a maximum of 10 nodes are supported if the storage type selected is persistent."
+  default     = 2
+  description = "Total number of storage cluster instances that you need to provision. A minimum of two nodes and a maximum of 64 nodes are supported if the storage type selected is scratch. A minimum of two nodes and a maximum of 42 nodes are supported if the storage type selected is persistent."
 }
 
 variable "compute_vsi_osimage_name" {
@@ -322,10 +322,10 @@ variable "storage_cluster_gui_username" {
 variable "storage_cluster_gui_password" {
   type        = string
   sensitive   = true
-  description = "Password that is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username."
+  description = "The storage cluster GUI password is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username and it should not start with a special character."
   validation {
-    condition     = can(regex("^.{8,}$", var.storage_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[a-z]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[A-Z]{1,}", var.storage_cluster_gui_password ) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.storage_cluster_gui_password ) != "" )&& trimspace(var.storage_cluster_gui_password) != ""
-    error_message = "Password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username."
+    condition     = can(regex("^.{8,}$", var.storage_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[a-z]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[A-Z]{1,}", var.storage_cluster_gui_password ) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.storage_cluster_gui_password ) != "" ) && trimspace(var.storage_cluster_gui_password) != ""  && can(regex("^[!@#$%^&*()_+=-]", var.storage_cluster_gui_password)) == false
+    error_message = "The storage cluster GUI Password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username and it should not start with a special character."
   }
 }
 
@@ -394,7 +394,7 @@ variable "scale_encryption_admin_password" {
 variable "scale_encryption_dns_domain" {
   type        = string
   default     = "gklmscale.com"
-  description = "IBM Cloud DNS Services domain name to be used for the gklm cluster."
+  description = "IBM Cloud DNS Services domain name to be used for the gklm cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
 }
 
 variable "scale_encryption_instance_key_pair" {
@@ -416,7 +416,7 @@ variable "vpc_protocol_cluster_private_subnets_cidr_blocks" {
 variable "vpc_protocol_cluster_dns_domain" {
   type        = string
   default     = "cesscale.com"
-  description = "IBM Cloud DNS Services domain name to be used for the protocol nodes."
+  description = "IBM Cloud DNS Services domain name to be used for the protocol nodes. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
 }
 
 variable "protocol_vsi_profile" {
@@ -445,7 +445,7 @@ variable "filesets" {
     mount_path = string,
     size       = number
   }))
-  default     = [{ mount_path = "/mnt/binaries", size = 0 }, { mount_path = "/mnt/data", size = 0 }]
+  default     = [{ mount_path = "/mnt/scale/tools", size = 0 }, { mount_path = "/mnt/scale/data", size = 0 }]
   description = "Mount point(s) and size(s) in GB of file share(s) that can be used to customize shared file storage layout. Provide the details for up to 5 file shares."
   validation {
     condition     = length(var.filesets) <= 5
@@ -484,7 +484,7 @@ variable "client_vsi_profile" {
 variable "vpc_client_cluster_dns_domain" {
   type        = string
   default     = "clntscale.com"
-  description = "IBM Cloud DNS domain name to be used for client cluster."
+  description = "IBM Cloud DNS domain name to be used for client cluster. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
 }
 
 variable "client_cluster_key_pair" {
@@ -493,41 +493,44 @@ variable "client_cluster_key_pair" {
   description = "Name of the SSH keys configured in your IBM Cloud account that is used to establish a connection to the Client cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
 }
 
+## LDAP variables
+
+variable "enable_ldap" {
+  type        = bool
+  default     = false
+  description = "Set this option to true to enable LDAP for IBM Cloud HPC, with the default value set to false."
+}
+
 variable "ldap_basedns" {
   type        = string
-  default     = "null"
-  description = "Base DNS of LDAP Server. If none given the LDAP feature will not be enabled."
+  default     = "ldapscale.com"
+  description = "The dns domain name is used for configuring the LDAP server. If an LDAP server is already in existence, ensure to provide the associated DNS domain name."
 }
 
 variable "ldap_server" {
   type        = string
   default     = "null"
-  description = "IP of existing LDAP server. If none given a new ldap server will be created"
+  description = "Provide the IP address for the existing LDAP server. If no address is given, a new LDAP server will be created."
 }
 
 variable "ldap_admin_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Password that is used for performing administrative operations for LDAP.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username. "
+  description = "The LDAP administrative password should be 8 to 20 characters long, with a mix of at least three alphabetic characters, including one uppercase and one lowercase letter. It must also include two numerical digits and at least one special character from (~@_+:) are required. It is important to avoid including the username in the password for enhanced security.[This value is ignored for an existing LDAP server]."
 }
 
 variable "ldap_user_name" {
   type        = string
-  sensitive   = true
-  default     = "null"
-  description = "Custom LDAP User for performing cluster operations. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
-  validation {
-    condition = var.ldap_user_name == null || (try(length(var.ldap_user_name), 0) >= 4 && try(length(var.ldap_user_name), 0) <= 32)
-    error_message = "Specified input for \"ldap_user_name\" is not valid. username should be greater or equal to 4 letters."
-  }
+  default     = ""
+  description = "Custom LDAP User for performing cluster operations. Note: Username should be between 4 to 32 characters, (any combination of lowercase and uppercase letters).[This value is ignored for an existing LDAP server]"
 }
 
 variable "ldap_user_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "LDAP User Password that is used for performing operations on the cluster.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character from this(~@_+:). Make sure that the password doesn't include the username."
+  description = "The LDAP user password should be 8 to 20 characters long, with a mix of at least three alphabetic characters, including one uppercase and one lowercase letter. It must also include two numerical digits and at least one special character from (~@_+:) are required.It is important to avoid including the username in the password for enhanced security.[This value is ignored for an existing LDAP server]."
 }
 
 variable "ldap_instance_key_pair" {
@@ -545,5 +548,5 @@ variable "ldap_vsi_profile" {
 variable "ldap_vsi_osimage_name" {
   type        = string
   default     = "ibm-ubuntu-22-04-3-minimal-amd64-1"
-  description = "Image name to use for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature. "
+  description = "Image name to be used for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature."
 }
