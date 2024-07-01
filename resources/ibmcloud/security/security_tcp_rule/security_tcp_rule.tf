@@ -15,15 +15,15 @@ variable "sg_direction" {}
 variable "remote_ip_addr" {}
 
 resource "ibm_is_security_group_rule" "itself" {
-  count = length(var.remote_ip_addr)
+  count     = length(var.remote_ip_addr)
   group     = var.security_group_id
   direction = var.sg_direction
   remote    = var.remote_ip_addr[count.index]
 
-    tcp {
-      port_min = 22
-      port_max = 22
-    }
+  tcp {
+    port_min = 22
+    port_max = 22
+  }
 }
 
 output "security_rule_id" {

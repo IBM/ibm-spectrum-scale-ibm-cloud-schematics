@@ -6,7 +6,7 @@ variable "TF_PARALLELISM" {
 
 variable "TF_VERSION" {
   type        = string
-  default     = "1.4"
+  default     = "1.5"
   description = "The version of the Terraform engine that's used in the Schematics workspace."
 }
 
@@ -124,14 +124,14 @@ variable "remote_cidr_blocks" {
   type        = list(string)
   description = "Comma-separated list of IP addresses that can be access the Storage Scale cluster Bastion node through SSH. For the purpose of security, provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. (Example : [\"169.45.117.34\"])  To fetch the IP address of the device, use [https://ipv4.icanhazip.com/](https://ipv4.icanhazip.com/)."
   validation {
-    condition     = alltrue([
-  for o in var.remote_cidr_blocks : !contains(["0.0.0.0/0", "0.0.0.0"], o)
-])
+    condition = alltrue([
+      for o in var.remote_cidr_blocks : !contains(["0.0.0.0/0", "0.0.0.0"], o)
+    ])
     error_message = "For the purpose of security provide the public IP address(es) assigned to the device(s) authorized to establish SSH connections. Use https://ipv4.icanhazip.com/ to fetch the ip address of the device."
   }
   validation {
     condition = alltrue([
-      for a in var.remote_cidr_blocks : can(regex("^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",a))
+      for a in var.remote_cidr_blocks : can(regex("^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", a))
     ])
     error_message = "Provided IP address format is not valid. Check if Ip address format has comma instead of dot and there should be double quotes between each IP address range if using multiple ip ranges. For multiple IP address use format [\"169.45.117.34\",\"128.122.144.145\"]."
   }
@@ -157,14 +157,14 @@ variable "bastion_key_pair" {
   type        = list(string)
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Bastion and Bootstrap nodes. Make Ensure that the SSH key is present in the same resource group and region where the cluster is being provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
   validation {
-    condition = alltrue([for key in var.bastion_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
+    condition     = alltrue([for key in var.bastion_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
     error_message = "Our automation code supports multi ssh keys and should follow above patteren to be attached to the bastion node."
   }
 }
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-4"
+  default     = "hpcc-scale-bootstrap-v2-4-0"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -178,13 +178,23 @@ variable "bootstrap_vsi_profile" {
   }
 }
 
+variable "management_vsi_profile" {
+  type        = string
+  default     = "bx2-8x32"
+  description = "The virtual server instance profile type name to be used to create the Management node. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
+  validation {
+    condition     = can(regex("^[b|c|m]x[0-9]+d?-[0-9]+x[0-9]+", var.management_vsi_profile))
+    error_message = "Specified profile must be a valid IBM Cloud VPC GEN2 Instance Storage profile name [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+  }
+}
+
 variable "ibm_customer_number" {
   type        = string
   sensitive   = true
   default     = ""
   description = "The IBM Customer Number (ICN) that is used for the Bring Your Own License (BYOL) entitlement check. Note: An ICN is not required if the storage_type selected is evaluation. For more information on how to find your ICN, see [What is my IBM Customer Number (ICN)?](https://www.ibm.com/support/pages/what-my-ibm-customer-number-icn)."
   validation {
-    condition = can(regex("^[0-9A-Za-z]*$", var.ibm_customer_number))
+    condition     = can(regex("^[0-9A-Za-z]*$", var.ibm_customer_number))
     error_message = "The IBM customer number input value cannot have special characters."
   }
 }
@@ -193,10 +203,9 @@ variable "compute_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
   description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
-
   validation {
-    condition     = can(regex("^\\/[a-z0-9A-Z-_]+\\/[a-z0-9A-Z-_]+$", var.compute_cluster_filesystem_mountpoint))
-    error_message = "Specified value for \"compute_cluster_filesystem_mountpoint\" is not valid (valid: /gpfs/fs1)."
+    condition     = var.compute_cluster_filesystem_mountpoint == "" || can(regex("^\\/([a-z0-9A-Z-_]+\\/)?([a-z0-9A-Z-_]+\\/)?[a-z0-9A-Z-_]+$", var.compute_cluster_filesystem_mountpoint))
+    error_message = "Specified value for \"compute_cluster_filesystem_mountpoint\" is not valid (valid: /fs1, /ibm/gpfs/fs1, /ibm/gpfs/cd1)."
   }
 }
 
@@ -205,8 +214,8 @@ variable "storage_cluster_filesystem_mountpoint" {
   default     = "/gpfs/fs1"
   description = "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
   validation {
-    condition     = can(regex("^\\/[a-z0-9A-Z-_]+\\/[a-z0-9A-Z-_]+$", var.storage_cluster_filesystem_mountpoint))
-    error_message = "Specified value for \"storage_cluster_filesystem_mountpoint\" is not valid (valid: /gpfs/fs1)."
+    condition     = can(regex("^\\/([a-z0-9A-Z-_]+\\/)?([a-z0-9A-Z-_]+\\/)?[a-z0-9A-Z-_]+$", var.storage_cluster_filesystem_mountpoint))
+    error_message = "Specified value for \"storage_cluster_filesystem_mountpoint\" is not valid (valid: /fs1, /ibm/gpfs/fs1, /ibm/gpfs/cd1)."
   }
 }
 
@@ -267,7 +276,7 @@ variable "total_compute_cluster_instances" {
   default     = 0
   description = "Total number of compute cluster instances that you need to provision. A minimum of three nodes and a maximum of 64 nodes are supported. A count of 0 can be defined when no compute nodes are required."
   validation {
-    condition = (var.total_compute_cluster_instances >= 3 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0 )
+    condition     = (var.total_compute_cluster_instances >= 3 && var.total_compute_cluster_instances <= 64 || var.total_compute_cluster_instances == 0)
     error_message = "Specified input \"total_compute_cluster_instances\" must be in range(3, 64) or it can be 0. Please provide the appropriate range of value."
   }
 }
@@ -275,12 +284,16 @@ variable "total_compute_cluster_instances" {
 variable "total_storage_cluster_instances" { # The validation from the variable has been removed because we want validation to be performed for two different use case i.e.(Persistent and Scratch) both of them are done at main.tf file
   type        = number
   default     = 2
-  description = "Total number of storage cluster instances that you need to provision. A minimum of two nodes and a maximum of 64 nodes are supported if the storage type selected is scratch. A minimum of two nodes and a maximum of 42 nodes are supported if the storage type selected is persistent."
+  description = "Total number of storage cluster instances that you need to provision. A minimum of two nodes and a maximum of 64 nodes are supported."
+  validation {
+    condition     = (var.total_storage_cluster_instances % 2 == 0 && (var.total_storage_cluster_instances >= 2 && var.total_storage_cluster_instances <= 64))
+    error_message = "Specified input \"total_storage_cluster_instances\" must be in range(2, 64). Please provide the appropriate range of value."
+  }
 }
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5192-rhel88"
+  default     = "hpcc-scale5201-rhel88"
   description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
@@ -291,7 +304,7 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5192-rhel88"
+  default     = "hpcc-scale5201-rhel88"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
@@ -304,7 +317,7 @@ variable "storage_cluster_key_pair" {
   type        = list(string)
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the Storage cluster nodes. Make sure that the SSH key is present in the same resource group and region where the cluster is provisioned. The solution supports only one SSH key that can be attached to the storage nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
   validation {
-    condition = alltrue([for key in var.storage_cluster_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
+    condition     = alltrue([for key in var.storage_cluster_key_pair : can(regex("^[a-z]+(-[a-z0-9]+)*$", key))])
     error_message = "Our automation code supports multi ssh keys and should follow above patteren to be attached to the storage node."
   }
 }
@@ -314,7 +327,7 @@ variable "storage_cluster_gui_username" {
   sensitive   = true
   description = "GUI username to perform system management and monitoring tasks on the storage cluster. Note: Username should be at least 4 characters, (any combination of lowercase and uppercase letters)."
   validation {
-    condition = var.storage_cluster_gui_username == "" || (length(var.storage_cluster_gui_username) >= 4 && length(var.storage_cluster_gui_username) <= 32)
+    condition     = var.storage_cluster_gui_username == "" || (length(var.storage_cluster_gui_username) >= 4 && length(var.storage_cluster_gui_username) <= 32)
     error_message = "Specified input for \"storage_cluster_gui_username\" is not valid. username should be greater or equal to 4 letters."
   }
 }
@@ -324,7 +337,7 @@ variable "storage_cluster_gui_password" {
   sensitive   = true
   description = "The storage cluster GUI password is used for logging in to the storage cluster through the GUI. The password should contain a minimum of 8 characters. For a strong password, use a combination of uppercase and lowercase letters, one number, and a special character. Make sure that the password doesn't contain the username and it should not start with a special character."
   validation {
-    condition     = can(regex("^.{8,}$", var.storage_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[a-z]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[A-Z]{1,}", var.storage_cluster_gui_password ) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.storage_cluster_gui_password ) != "" ) && trimspace(var.storage_cluster_gui_password) != ""  && can(regex("^[!@#$%^&*()_+=-]", var.storage_cluster_gui_password)) == false
+    condition     = can(regex("^.{8,}$", var.storage_cluster_gui_password) != "") && can(regex("[0-9]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[a-z]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[A-Z]{1,}", var.storage_cluster_gui_password) != "") && can(regex("[!@#$%^&*()_+=-]{1,}", var.storage_cluster_gui_password) != "") && trimspace(var.storage_cluster_gui_password) != "" && can(regex("^[!@#$%^&*()_+=-]", var.storage_cluster_gui_password)) == false
     error_message = "The storage cluster GUI Password should contain minimum of 8 characters and for strong password it must be a combination of uppercase letter, lowercase letter, one number and a special character. Ensure password doesn't comprise with username and it should not start with a special character."
   }
 }
@@ -352,12 +365,18 @@ variable "storage_bare_metal_server_profile" {
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-8-minimal-amd64-3"
+  default     = "hpcc-scale5201-rhel88"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
-    error_message = "Specified input \"storage_vsi_osimage_name\" is not valid."
+    error_message = "Specified input \"storage_bare_metal_osimage_name\" is not valid."
   }
+}
+
+variable "bms_boot_drive_encryption" {
+  type        = bool
+  default     = false
+  description = "To enable the encryption for the boot drive of bare metal server. Select true or false"
 }
 
 variable "scale_encryption_enabled" {
@@ -368,7 +387,7 @@ variable "scale_encryption_enabled" {
 
 variable "scale_encryption_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale-gklm-v4-2-0-3"
+  default     = "hpcc-scale-gklm4202-v2-4-0"
   description = "Name of the image that you would like to use to create the GKLM server for encryption. The solution supports only a RHEL 8.8 stock image"
 }
 
@@ -429,15 +448,20 @@ variable "protocol_vsi_profile" {
   }
 }
 
+variable "colocate_protocol_cluster_instances" {
+  type        = bool
+  default     = true
+  description = "Enable it to use storage instances as protocol instances"
+}
+
 variable "total_protocol_cluster_instances" {
   type        = number
   default     = 2
-  description = "Total number of protocol nodes that you need to provision. A minimum of 2 nodes and a maximum of 16 nodes are supported"
+  description = "Total number of protocol nodes that you need to provision. A minimum of 2 nodes and a maximum of 32 nodes are supported"
   validation {
-    condition = (var.total_protocol_cluster_instances >= 0 && var.total_protocol_cluster_instances <= 16 || var.total_protocol_cluster_instances == 0 )
-    error_message = "Specified input \"total_protocol_cluster_instances\" must be in range(0, 16) or it can be 0. Please provide the appropriate range of value."
+    condition     = (var.total_protocol_cluster_instances >= 0 && var.total_protocol_cluster_instances <= 32)
+    error_message = "Specified input \"total_protocol_cluster_instances\" must be in range(0, 32) or it can be 0. Please provide the appropriate range of value."
   }
-  
 }
 
 variable "filesets" {
@@ -462,12 +486,12 @@ variable "filesets" {
 variable "total_client_cluster_instances" {
   type        = number
   default     = 2
-  description = "Total number of client cluster instances that you need to provision. A minimum of 2 nodes and a maximum of 64 nodes are supported"
+  description = "Total number of client cluster instances that you need to provision."
 }
 
 variable "client_vsi_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-8-minimal-amd64-3"
+  default     = "ibm-redhat-8-8-minimal-amd64-4"
   description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
 }
 
@@ -535,7 +559,7 @@ variable "ldap_user_password" {
 
 variable "ldap_instance_key_pair" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "Name of the SSH key configured in your IBM Cloud account that is used to establish a connection to the LDAP Server. Make sure that the SSH key is present in the same resource group and region where the LDAP Servers are provisioned. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
 }
 

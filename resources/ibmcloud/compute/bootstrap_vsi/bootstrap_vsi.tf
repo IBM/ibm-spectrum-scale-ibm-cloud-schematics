@@ -57,12 +57,12 @@ resource "ibm_is_instance" "itself" {
     security_groups = var.vsi_security_group
   }
 
-  vpc                      = var.vpc_id
-  zone                     = var.vpc_zone
-  resource_group           = var.resource_grp_id
-  keys                     = var.vsi_user_public_key
-  user_data                = data.template_file.metadata_startup_script.rendered
-  
+  vpc            = var.vpc_id
+  zone           = var.vpc_zone
+  resource_group = var.resource_grp_id
+  keys           = var.vsi_user_public_key
+  user_data      = data.template_file.metadata_startup_script.rendered
+
   boot_volume {
     name = format("%s-boot-vol", var.vsi_name_prefix)
   }
