@@ -215,7 +215,7 @@ data "ibm_is_ssh_key" "client_ssh_key" {
 }
 
 data "ibm_is_ssh_key" "encryption_ssh_key" {
-  count = var.scale_encryption_instance_key_pair != null ? length(var.scale_encryption_instance_key_pair) : 0
+  count = var.scale_encryption_instance_key_pair != null && var.scale_encryption_type == "gklm" ? length(var.scale_encryption_instance_key_pair) : 0
   name  = var.scale_encryption_instance_key_pair[count.index]
 }
 
@@ -233,6 +233,11 @@ locals {
     (local.validate_bastion_os
       ? local.validate_bastion_os_msg
   : ""))
+}
+
+locals {
+  scale_encryption_enabled = var.scale_encryption_type == "gklm" || var.scale_encryption_type == "key_protect" ? true : false
+  gklm_encryption_status   = var.scale_encryption_type == "gklm" ? false : true
 }
 
 locals {
@@ -257,8 +262,8 @@ locals {
 
   // Check whether an entry is found in the mapping file for the given GKLM image
   scale_encryption_image_mapping_entry_found = contains(keys(local.scale_encryption_image_region_map), var.scale_encryption_vsi_osimage_name)
-  scale_encryption_image_id                  = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? lookup(lookup(local.scale_encryption_image_region_map, one(keys(local.scale_encryption_image_region_map))), local.vpc_region) : local.scale_encryption_image_mapping_entry_found ? lookup(lookup(local.scale_encryption_image_region_map, var.scale_encryption_vsi_osimage_name), local.vpc_region) : data.ibm_is_image.scale_encryption_image[0].id
-  scale_encryption_osimage_name              = var.scale_encryption_enabled == true && !(local.scale_encryption_image_mapping_entry_found) ? one(keys(local.scale_encryption_image_region_map)) : local.scale_encryption_image_mapping_entry_found ? var.scale_encryption_vsi_osimage_name : data.ibm_is_image.scale_encryption_image[0].name
+  scale_encryption_image_id                  = local.scale_encryption_enabled == true && var.scale_encryption_type == "gklm" && !(local.scale_encryption_image_mapping_entry_found) ? lookup(lookup(local.scale_encryption_image_region_map, one(keys(local.scale_encryption_image_region_map))), local.vpc_region) : local.scale_encryption_image_mapping_entry_found ? lookup(lookup(local.scale_encryption_image_region_map, var.scale_encryption_vsi_osimage_name), local.vpc_region) : data.ibm_is_image.scale_encryption_image[0].id
+  scale_encryption_osimage_name              = local.scale_encryption_enabled == true && var.scale_encryption_type == "gklm" && !(local.scale_encryption_image_mapping_entry_found) ? one(keys(local.scale_encryption_image_region_map)) : local.scale_encryption_image_mapping_entry_found ? var.scale_encryption_vsi_osimage_name : data.ibm_is_image.scale_encryption_image[0].name
 }
 
 data "ibm_is_image" "bootstrap_image" {
@@ -316,20 +321,20 @@ locals {
   GKLM_server_count_msg = "Setting up a high-availability encryption server. You need to choose at least 2 and the maximum number of 5."
 
   // GKLM Server count
-  validate_GKLM_server_count = (var.scale_encryption_enabled && var.scale_encryption_server_count >= 2 && var.scale_encryption_server_count <= 5) || !var.scale_encryption_enabled
+  validate_GKLM_server_count = (var.scale_encryption_type == "gklm" && var.scale_encryption_server_count >= 2 && var.scale_encryption_server_count <= 5) || local.gklm_encryption_status
   validate_GKLM_server_count_chk = regex(
     "^${local.GKLM_server_count_msg}$",
   (local.validate_GKLM_server_count ? local.GKLM_server_count_msg : ""))
 
   // GKLM password validation
-  validate_GKLM_pwd = (var.scale_encryption_enabled && length(var.scale_encryption_admin_password) >= 8 && length(var.scale_encryption_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.scale_encryption_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^.*[~@_+:].*$", var.scale_encryption_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.scale_encryption_admin_password)) || !var.scale_encryption_enabled
+  validate_GKLM_pwd = (local.scale_encryption_enabled && length(var.scale_encryption_admin_password) >= 8 && length(var.scale_encryption_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.scale_encryption_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.scale_encryption_admin_password)) && can(regex("^.*[~@_+:].*$", var.scale_encryption_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.scale_encryption_admin_password)) || !local.scale_encryption_enabled
   password_msg      = "Password that is used for performing administrative operations for the GKLM.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
   validate_GKLM_pwd_chk = regex(
     "^${local.password_msg}$",
   (local.validate_GKLM_pwd ? local.password_msg : ""))
 
   // GKLM keypair validation
-  validate_GKLM_keypair = (var.scale_encryption_enabled && var.scale_encryption_instance_key_pair == "")
+  validate_GKLM_keypair = (local.scale_encryption_enabled && var.scale_encryption_instance_key_pair == "")
   keypair_msg           = "SSH-Keypair should not be empty when encryption is enabled."
   gklm_keypair_check    = regex("^${local.keypair_msg}$", (local.validate_GKLM_keypair ? "" : local.keypair_msg))
 }
@@ -374,9 +379,90 @@ locals {
   (local.validate_ldap_usr_pwd ? local.ldap_usr_password_msg : ""))
 
   // LDAP Keypair Validation
-  validate_LDAP_keypair = (var.enable_ldap && var.ldap_instance_key_pair == null)
-  ldap_keypair_msg      = "SSH-Keypair should not be empty when LDAP is enabled."
-  ldap_keypair_check    = regex("^${local.ldap_keypair_msg}$", (local.validate_LDAP_keypair ? "" : local.ldap_keypair_msg))
+  validate_LDAP_keypair = var.enable_ldap == true && var.ldap_server == "null" ? length(var.ldap_instance_key_pair) > 0 : length(var.ldap_instance_key_pair) >= 0
+  ldap_keypair_msg      = "SSH-Keypair should not be empty when LDAP is enabled and existing LDAP server is not equal to null."
+  ldap_keypair_check    = regex("^${local.ldap_keypair_msg}$", (local.validate_LDAP_keypair ? local.ldap_keypair_msg : ""))
+}
+
+locals {
+  cos_instance_service = "cloud-object-storage"
+
+  # Check if all the given existing COS instances are available.
+  exstng_instance_new_bucket_hmac = [for details in var.afm_cos_config : details if details.cos_instance != ""]
+  check_existing_instances        = distinct([for instance in local.exstng_instance_new_bucket_hmac : instance.cos_instance])
+
+  # Check if all the given existing COS buckets are available.
+  existing_instance_buckets     = [for details in var.afm_cos_config : details if(details.cos_instance != "" && details.bucket_name != "")]
+  check_exstng_instances        = [for instance in local.existing_instance_buckets : instance.cos_instance]
+  check_existing_buckets        = [for buckets in local.existing_instance_buckets : buckets.bucket_name]
+  check_existing_buckets_region = [for region in local.existing_instance_buckets : region.bucket_region ]
+  check_existing_buckets_type   = [for type in local.existing_instance_buckets : type.bucket_type]
+
+  # Check if all the given existing HMAC keys are available.
+  exstng_instance_hmac        = [for details in var.afm_cos_config : details if(details.cos_instance != "" && details.cos_service_cred_key != "")]
+  check_exstng_instances_hmac = [for instance in local.exstng_instance_hmac : instance.cos_instance]
+  check_existing_hmac         = [for hmac in local.exstng_instance_hmac : hmac.cos_service_cred_key]
+}
+
+# Check if all the given existing COS instances are available.
+data "ibm_resource_instance" "existing_cos_instance_check" {
+  for_each = {
+    for idx, value in local.check_existing_instances : idx => {
+      cos_instance = element(local.check_existing_instances, idx)
+    }
+  }
+  name    = each.value.cos_instance
+  service = local.cos_instance_service
+}
+
+# Check if all the given existing COS buckets are available.
+data "ibm_resource_instance" "existing_cos_instance_bucket" {
+  for_each = {
+    for idx, value in local.check_exstng_instances : idx => {
+      cos_instance = element(local.check_exstng_instances, idx)
+    }
+  }
+  name    = each.value.cos_instance
+  service = local.cos_instance_service
+}
+
+data "ibm_cos_bucket" "existing_cos_bucket_check" {
+  for_each = {
+    for idx, value in local.check_existing_buckets : idx => {
+      bucket_name          = element(local.check_existing_buckets, idx)
+      resource_instance_id = element(flatten([for instance in data.ibm_resource_instance.existing_cos_instance_bucket : instance[*].id]), idx)
+      bucket_region        = element(local.check_existing_buckets_region, idx)
+      bucket_type          = element(local.check_existing_buckets_type, idx)
+    }
+  }
+  bucket_name          = each.value.bucket_name
+  resource_instance_id = each.value.resource_instance_id
+  bucket_region        = each.value.bucket_region
+  bucket_type          = each.value.bucket_type
+  depends_on           = [data.ibm_resource_instance.existing_cos_instance_bucket]
+}
+
+# Check if all the given existing HMAC keys are available.
+data "ibm_resource_instance" "exstng_cos_instance_hmac" {
+  for_each = {
+    for idx, value in local.check_exstng_instances_hmac : idx => {
+      cos_instance = element(local.check_exstng_instances_hmac, idx)
+    }
+  }
+  name    = each.value.cos_instance
+  service = local.cos_instance_service
+}
+
+data "ibm_resource_key" "existing_hmac_key" {
+  for_each = {
+    for idx, value in local.check_existing_hmac : idx => {
+      hmac_key             = element(local.check_existing_hmac, idx)
+      resource_instance_id = element(flatten([for instance in data.ibm_resource_instance.exstng_cos_instance_hmac : instance[*].id]), idx)
+    }
+  }
+  name                 = each.value.hmac_key
+  resource_instance_id = each.value.resource_instance_id
+  depends_on           = [data.ibm_resource_instance.exstng_cos_instance_hmac]
 }
 
 locals {

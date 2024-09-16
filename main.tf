@@ -66,7 +66,7 @@ locals {
   /*
   cluster_storage_dns_zone_id           = var.vpc_name == null && local.existing_storage_dns_zone_id == null ? module.storage_dns_zone[0].dns_zone_id : local.existing_storage_dns_zone_id
   cluster_compute_dns_zone_id           = var.vpc_name == null && local.existing_compute_dns_zone_id == null ? module.compute_dns_zone[0].dns_zone_id : local.existing_compute_dns_zone_id
-  cluster_scale_encryption_dns_zone_id  = var.scale_encryption_enabled == true && var.vpc_name == null || local.existing_gklm_dns_zone_id == null ? module.scale_encryption_dns_zone[0].dns_zone_id : local.existing_gklm_dns_zone_id
+  cluster_scale_encryption_dns_zone_id  = local.scale_encryption_enabled == true && var.vpc_name == null || local.existing_gklm_dns_zone_id == null ? module.scale_encryption_dns_zone[0].dns_zone_id : local.existing_gklm_dns_zone_id
   cluster_protocol_dns_zone_id          = local.scale_ces_enabled == true && var.vpc_name == null || local.existing_protocol_dns_zone_id == null ? module.protocol_dns_zone[0].dns_zone_id : local.existing_protocol_dns_zone_id
   cluster_client_dns_zone_id            = local.create_client_cluster == true && var.vpc_name == null || local.existing_client_dns_zone_id == null ? module.client_dns_zone[0].dns_zone_id : local.existing_client_dns_zone_id
   */
@@ -208,9 +208,9 @@ module "client_dns_permitted_network" {
 }
 
 module "scale_encryption_dns_zone" {
-  count          = var.scale_encryption_enabled == true ? 1 : 0
+  count          = local.scale_encryption_enabled == true && var.scale_encryption_type == "gklm" ? 1 : 0
   source         = "./resources/ibmcloud/network/dns_zone"
-  dns_zone_count = var.scale_encryption_enabled == true ? 1 : 0
+  dns_zone_count = local.scale_encryption_enabled == true && var.scale_encryption_type == "gklm" ? 1 : 0
   dns_domain     = var.scale_encryption_dns_domain
   dns_service_id = local.cluster_dns_service_id
   description    = "Private DNS Zone for Spectrum Scale GKLM DNS communication."
@@ -219,7 +219,7 @@ module "scale_encryption_dns_zone" {
 }
 
 module "gklm_dns_permitted_network" {
-  count           = var.scale_encryption_enabled == true ? 1 : 0
+  count           = local.scale_encryption_enabled == true && var.scale_encryption_type == "gklm" ? 1 : 0
   source          = "./resources/ibmcloud/network/dns_permitted_network"
   permitted_count = local.vpc_create_separate_subnets == true ? 1 : 0
   instance_id     = local.cluster_dns_service_id
@@ -385,7 +385,7 @@ locals {
   storage_private_subnets            = (var.vpc_name == null || var.vpc_name != null) && var.vpc_storage_subnet == null ? tostring(element(module.storage_private_subnet[0].subnet_id, 0)) : local.existing_storage_subnet_id
   protocol_private_subnets           = local.scale_ces_enabled ? (var.vpc_name == null || var.vpc_name != null) && var.vpc_protocol_subnet == null ? tostring(element(module.protocol_private_subnet[0].subnet_id, 0)) : local.existing_protocol_subnet_id : ""
   scale_cluster_resource_tags        = jsonencode(local.tags)
-  products                           = var.scale_encryption_enabled == false ? "scale" : "scale,gklm"
+  products                           = var.scale_encryption_type == "gklm" ? "scale,gklm" : "scale"
   compute_node_count                 = var.total_compute_cluster_instances
   storage_node_count                 = var.total_storage_cluster_instances
   protocol_node_count                = var.total_protocol_cluster_instances
@@ -393,19 +393,22 @@ locals {
   scale_ces_enabled                  = var.total_protocol_cluster_instances > 0 ? true : false
   create_client_cluster              = var.total_client_cluster_instances > 0 ? true : false
   filesets                           = jsonencode(var.filesets)
+  total_afm_cluster_instances        = var.total_afm_cluster_instances
+  scale_afm_enabled                  = var.total_afm_cluster_instances > 0 ? true : false
+  afm_cos_config                     = jsonencode(var.afm_cos_config)
   compute_cluster_key_pair           = jsonencode(var.compute_cluster_key_pair)
   storage_cluster_key_pair           = jsonencode(var.storage_cluster_key_pair)
   client_cluster_key_pair            = jsonencode(var.client_cluster_key_pair)
-  scale_encryption_instance_key_pair = var.scale_encryption_enabled ? jsonencode(var.scale_encryption_instance_key_pair) : jsonencode([])
-  encryption_node_count              = var.scale_encryption_enabled ? var.scale_encryption_server_count : "0"
+  scale_encryption_instance_key_pair = local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? jsonencode(var.scale_encryption_instance_key_pair) : jsonencode([])
+  encryption_node_count              = local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? var.scale_encryption_server_count : "0"
   enable_sec_interface               = local.scale_ces_enabled == false && data.ibm_is_instance_profile.compute_vsi.bandwidth[0].value >= 64000 ? true : false
   ldap_instance_key_pair             = var.enable_ldap ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
   scale_cloud_install_repo_url       = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name      = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_repo_tag       = "v2.4.0"
+  scale_cloud_install_repo_tag       = "v2.5.0"
   scale_cloud_infra_repo_url         = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name        = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag         = "ibmcloud_v2.4.0"
+  scale_cloud_infra_repo_tag         = "ibmcloud_v2.5.0"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -456,15 +459,16 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "storage_bare_metal_server_profile": "${var.storage_bare_metal_server_profile}",
     "storage_bare_metal_osimage_name": "${local.storage_bare_metal_osimage_name}",
     "storage_type": "${var.storage_type}",
-    "scale_encryption_enabled": "${var.scale_encryption_enabled}",
-    "scale_encryption_admin_password": "${var.scale_encryption_enabled ? var.scale_encryption_admin_password : "null"}",
-    "gklm_vsi_osimage_name": "${var.scale_encryption_enabled ? local.scale_encryption_osimage_name : "null"}",
-    "gklm_vsi_profile": "${var.scale_encryption_enabled ? var.scale_encryption_vsi_profile : "null"}",
-    "gklm_vsi_osimage_id": "${var.scale_encryption_enabled ? local.scale_encryption_image_id : "null"}",
+    "scale_encryption_enabled": "${local.scale_encryption_enabled}",
+    "scale_encryption_type": "${var.scale_encryption_type}",
+    "scale_encryption_admin_password": "${local.scale_encryption_enabled ? var.scale_encryption_admin_password : "null"}",
+    "gklm_vsi_osimage_name": "${local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? local.scale_encryption_osimage_name : "null"}",
+    "gklm_vsi_profile": "${local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? var.scale_encryption_vsi_profile : "null"}",
+    "gklm_vsi_osimage_id": "${local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? local.scale_encryption_image_id : "null"}",
     "gklm_instance_key_pair": ${local.scale_encryption_instance_key_pair},
-    "gklm_instance_dns_service_id": "${var.scale_encryption_enabled ? local.cluster_dns_service_id[0] : "null"}",
-    "gklm_instance_dns_zone_id": "${var.scale_encryption_enabled ? module.scale_encryption_dns_zone[0].dns_zone_id : "null"}",
-    "gklm_instance_dns_domain": "${var.scale_encryption_enabled ? var.scale_encryption_dns_domain : "null"}",
+    "gklm_instance_dns_service_id": "${local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? local.cluster_dns_service_id[0] : "null"}",
+    "gklm_instance_dns_zone_id": "${local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? module.scale_encryption_dns_zone[0].dns_zone_id : "null"}",
+    "gklm_instance_dns_domain": "${local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? var.scale_encryption_dns_domain : "null"}",
     "total_compute_cluster_instances": ${local.compute_node_count},
     "total_storage_cluster_instances": ${local.storage_node_count},
     "total_gklm_instances": ${local.encryption_node_count},
@@ -493,7 +497,10 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "ldap_vsi_osimage_name": "${var.ldap_vsi_osimage_name}",
     "colocate_protocol_cluster_instances": "${var.colocate_protocol_cluster_instances}",
     "management_vsi_profile": "${var.management_vsi_profile}",
-    "bms_boot_drive_encryption": "${var.bms_boot_drive_encryption}"
+    "bms_boot_drive_encryption": "${var.bms_boot_drive_encryption}",
+    "total_afm_cluster_instances": ${local.total_afm_cluster_instances},
+    "afm_vsi_profile": "${var.afm_vsi_profile}",
+    "afm_cos_config": ${local.afm_cos_config}
 }    
 EOT
   filename = local.schematics_inputs_path
