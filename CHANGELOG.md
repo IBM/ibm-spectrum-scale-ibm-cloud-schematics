@@ -1,5 +1,26 @@
 # **CHANGELOG**
 
+## **2.5.1**
+### BUG FIXES
+- Updated SGKLM images.
+
+## **2.5.0**
+### ENHANCEMENTS
+- Enabling AFM feature : Enabling AFM feature allows you to connect IBM Storage Scale filesets to Cloud Object Storage (COS).
+- Enabling Encryption with IBM Key Protect : You can now encrypt the Storage Scale cluster file systems using IBM Key Protect. To enable encryption, specify the scale_encryption_xxx deployment values when setting up your workspace. For detailed instructions on enabling encryption and configuring these deployment values, refer to the Enabling Encryption documentation.
+
+## **2.4.0**
+### ENHANCEMENTS
+- Enabling colocation feature : Enabling colocation designates the subset of Storage server as protocol nodes. If disabled, the protocol nodes are created on a dedicated virtual server irrespective of storage type.
+- Enabling boot drive encryption feature for Bare Metal : Enable the boot drive encryption feature for IBM Bare Metal servers on VPC to use the local disk drive for boot. Boot drive encryption encrypts the drive by using LUKS and leverages the local Trusted Platform Module (TPM) for key management.
+- Updated Storage Scale software version : The Storage Scale version that is used for the configuration of the compute and storage clusters is updated from version 5.1.9.2 to 5.2.0.1.
+
+## **2.3.2**
+### ENHANCEMENTS
+- Introducing a single CES hostname that is mapped to all the CES IP addresses to distribute the workload.
+- LDAP user integration with password-based authentication.
+- Minor encryption, NFS, and security fixes.
+
 ## **2.3.1**
 ### ENHANCEMENTS
 - Updated Storage Scale software version: The Storage Scale version used for configuration of the compute and storage clusters has been updated from version 5.1.9.0 to 5.1.9.2

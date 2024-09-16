@@ -385,7 +385,7 @@ locals {
   storage_private_subnets            = (var.vpc_name == null || var.vpc_name != null) && var.vpc_storage_subnet == null ? tostring(element(module.storage_private_subnet[0].subnet_id, 0)) : local.existing_storage_subnet_id
   protocol_private_subnets           = local.scale_ces_enabled ? (var.vpc_name == null || var.vpc_name != null) && var.vpc_protocol_subnet == null ? tostring(element(module.protocol_private_subnet[0].subnet_id, 0)) : local.existing_protocol_subnet_id : ""
   scale_cluster_resource_tags        = jsonencode(local.tags)
-  products                           = local.scale_encryption_enabled == "false" ? "scale" : var.scale_encryption_type == "gklm" ? "scale,gklm" : "scale"
+  products                           = var.scale_encryption_type == "gklm" ? "scale,gklm" : "scale"
   compute_node_count                 = var.total_compute_cluster_instances
   storage_node_count                 = var.total_storage_cluster_instances
   protocol_node_count                = var.total_protocol_cluster_instances
