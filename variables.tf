@@ -399,7 +399,7 @@ variable "scale_encryption_admin_password" {
 
 variable "scale_encryption_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale-gklm4202-v2-4-0"
+  default     = "hpcc-scale-gklm4202-v2-5-1"
   description = "Specify the image name to create the GKLM server when 'scale_encryption_type' is set to 'gklm'. Only RHEL 8.8 stock images are supported."
 }
 
