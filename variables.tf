@@ -139,7 +139,7 @@ variable "remote_cidr_blocks" {
 
 variable "bastion_osimage_name" {
   type        = string
-  default     = "ibm-ubuntu-20-04-3-minimal-amd64-2"
+  default     = "ibm-ubuntu-24-04-6-minimal-amd64-1"
   description = "Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
 }
 
@@ -164,7 +164,7 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-4-0"
+  default     = "hpcc-scale-bootstrap-v2-6-0"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -202,7 +202,7 @@ variable "ibm_customer_number" {
 variable "compute_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
-  description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
+  description = "Compute cluster (accessing Cluster) file system mount point. The accessingCluster is the cluster that accesses the owningCluster. For more information, see [Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.2.1?topic=system-mounting-remote-gpfs-file)."
   validation {
     condition     = var.compute_cluster_filesystem_mountpoint == "" || can(regex("^\\/([a-z0-9A-Z-_]+\\/)?([a-z0-9A-Z-_]+\\/)?[a-z0-9A-Z-_]+$", var.compute_cluster_filesystem_mountpoint))
     error_message = "Specified value for \"compute_cluster_filesystem_mountpoint\" is not valid (valid: /fs1, /ibm/gpfs/fs1, /ibm/gpfs/cd1)."
@@ -212,7 +212,7 @@ variable "compute_cluster_filesystem_mountpoint" {
 variable "storage_cluster_filesystem_mountpoint" {
   type        = string
   default     = "/gpfs/fs1"
-  description = "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=system-mounting-remote-gpfs-file)."
+  description = "Storage Scale storage cluster (owningCluster) file system mount point. The owningCluster is the cluster that owns and serves the file system to be mounted. For information, see[Mounting a remote GPFS file system](https://www.ibm.com/docs/en/storage-scale/5.2.1?topic=system-mounting-remote-gpfs-file)."
   validation {
     condition     = can(regex("^\\/([a-z0-9A-Z-_]+\\/)?([a-z0-9A-Z-_]+\\/)?[a-z0-9A-Z-_]+$", var.storage_cluster_filesystem_mountpoint))
     error_message = "Specified value for \"storage_cluster_filesystem_mountpoint\" is not valid (valid: /fs1, /ibm/gpfs/fs1, /ibm/gpfs/cd1)."
@@ -222,7 +222,7 @@ variable "storage_cluster_filesystem_mountpoint" {
 variable "filesystem_block_size" {
   type        = string
   default     = "4M"
-  description = "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.1.9?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
+  description = "File system [block size](https://www.ibm.com/docs/en/storage-scale/5.2.1?topic=considerations-block-size). Storage Scale supported block sizes (in bytes) include: 256K, 512K, 1M, 2M, 4M, 8M, 16M."
 
   validation {
     condition     = can(regex("^256K$|^512K$|^1M$|^2M$|^4M$|^8M$|^16M$", var.filesystem_block_size))
@@ -293,7 +293,7 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5201-rhel88"
+  default     = "hpcc-scale5211-rhel810"
   description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
@@ -304,7 +304,7 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5201-rhel88"
+  default     = "hpcc-scale5211-rhel810"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
@@ -365,7 +365,7 @@ variable "storage_bare_metal_server_profile" {
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "hpcc-scale5201-rhel88"
+  default     = "hpcc-scale5211-rhel810"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
@@ -443,14 +443,10 @@ variable "vpc_protocol_cluster_dns_domain" {
   description = "IBM Cloud DNS Services domain name to be used for the protocol nodes. Note: If an existing DNS domain is already in use, a new domain must be specified as existing domains are not supported."
 }
 
-variable "protocol_vsi_profile" {
+variable "protocol_server_profile" {
   type        = string
   default     = "cx2-32x64"
-  description = "The virtual server instance profile type name to be used to create the protocol cluster nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui)."
-  validation {
-    condition     = can(regex("^[b|c|m]x[0-9]+d?-[0-9]+x[0-9]+", var.protocol_vsi_profile))
-    error_message = "Specified profile must be a valid IBM Cloud VPC GEN2 profile name [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
-  }
+  description = "The virtual instance or bare metal server instance profile type name to be used to create the protocol nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui) and [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui)."
 }
 
 variable "colocate_protocol_cluster_instances" {
@@ -496,7 +492,7 @@ variable "total_client_cluster_instances" {
 
 variable "client_vsi_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-8-minimal-amd64-4"
+  default     = "ibm-redhat-8-10-minimal-amd64-2"
   description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
 }
 
@@ -588,12 +584,12 @@ variable "total_afm_cluster_instances" {
   description = "Total number of instance count that you need to provision for afm nodes and enable AFM."
 }
 
-variable "afm_vsi_profile" {
+variable "afm_server_profile" {
   type        = string
   default     = "bx2-32x128"
   description = "The virtual instance or bare metal server instance profile type name to be used to create the AFM gateway nodes. For more information, see [Instance Profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles&interface=ui) and [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui)."
   validation {
-    condition     = element((split("x", var.afm_vsi_profile)), length(split("x", var.afm_vsi_profile)) - 1) >= 128
+    condition     = element((split("x", var.afm_server_profile)), length(split("x", var.afm_server_profile)) - 1) >= 128
     error_message = "Minimum 128 GB of memory is needed for the AFM gateway node"
   }
 }

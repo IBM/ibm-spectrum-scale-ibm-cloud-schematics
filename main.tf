@@ -405,10 +405,10 @@ locals {
   ldap_instance_key_pair             = var.enable_ldap ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
   scale_cloud_install_repo_url       = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name      = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_repo_tag       = "v2.5.0"
+  scale_cloud_install_repo_tag       = "v2.6.0"
   scale_cloud_infra_repo_url         = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name        = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag         = "ibmcloud_v2.5.0"
+  scale_cloud_infra_repo_tag         = "ibmcloud_v2.6.0"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -473,7 +473,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "total_storage_cluster_instances": ${local.storage_node_count},
     "total_gklm_instances": ${local.encryption_node_count},
     "vpc_protocol_cluster_private_subnets": ["${local.protocol_private_subnets}"],
-    "protocol_vsi_profile": "${local.scale_ces_enabled ? var.protocol_vsi_profile : "null"}",
+    "protocol_vsi_profile": "${local.scale_ces_enabled ? var.protocol_server_profile : "null"}",
     "vpc_protocol_cluster_dns_service_id": "${local.scale_ces_enabled ? local.cluster_dns_service_id[0] : "null"}",
     "vpc_protocol_cluster_dns_zone_id": "${local.scale_ces_enabled ? module.protocol_dns_zone[0].dns_zone_id : "null"}",
     "vpc_protocol_cluster_dns_domain": "${local.scale_ces_enabled ? var.vpc_protocol_cluster_dns_domain : "null"}",
@@ -499,7 +499,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "management_vsi_profile": "${var.management_vsi_profile}",
     "bms_boot_drive_encryption": "${var.bms_boot_drive_encryption}",
     "total_afm_cluster_instances": ${local.total_afm_cluster_instances},
-    "afm_vsi_profile": "${var.afm_vsi_profile}",
+    "afm_vsi_profile": "${var.afm_server_profile}",
     "afm_cos_config": ${local.afm_cos_config}
 }    
 EOT
