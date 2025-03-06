@@ -161,8 +161,8 @@ locals {
 }
 
 locals {
-  validate_zone                  = var.storage_type == "persistent" ? contains(["us-south-1", "us-south-3", "eu-de-1", "eu-de-2", "jp-tok-2", "jp-tok-3"], join(",", var.vpc_availability_zones)) : true
-  zone_msg                       = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, eu-de-2, jp-tok-2 and jp-tok-3. To deploy persistent storage provide any one of the supported availability zones."
+  validate_zone                  = var.storage_type == "persistent" ? contains(["us-south-1", "us-south-3", "eu-de-1", "eu-de-2", "jp-tok-2", "jp-tok-3", "ca-tor-1", "ca-tor-3" ], join(",", var.vpc_availability_zones)) : true
+  zone_msg                       = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, eu-de-2, jp-tok-2, jp-tok-3, ca-tor-1 and ca-tor-3. To deploy persistent storage provide any one of the supported availability zones."
   validate_persistent_region_chk = regex("^${local.zone_msg}$", (local.validate_zone ? local.zone_msg : ""))
 }
 
@@ -350,15 +350,23 @@ locals {
     "^${local.ldap_basedns_msg}$",
   (local.validate_ldap_basedns ? local.ldap_basedns_msg : ""))
 
-  // LDAP base existing LDAP server
+  // Existing LDAP server validation
   validate_ldap_server = (var.enable_ldap && trimspace(var.ldap_server) != "") || !var.enable_ldap
   ldap_server_msg      = "IP of existing LDAP server. If none given a new ldap server will be created. It should not be empty."
   validate_ldap_server_chk = regex(
     "^${local.ldap_server_msg}$",
   (local.validate_ldap_server ? local.ldap_server_msg : ""))
 
+  // Existing LDAP server cert validation
+  validate_ldap_server_cert = ((trimspace(var.ldap_server) != "" && trimspace(var.ldap_server_cert) != "" && trimspace(var.ldap_server_cert) != "null") || trimspace(var.ldap_server) == "null" || !var.enable_ldap)
+  ldap_server_cert_msg = "Provide the existing LDAP server certificate. This is required if 'ldap_server' is not set to 'null'; otherwise, the LDAP configuration will not succeed."
+  validate_ldap_server_cert_chk = regex(
+    "^${local.ldap_server_cert_msg}$",
+    local.validate_ldap_server_cert ? local.ldap_server_cert_msg : ""
+  )
+
   // LDAP Admin Password Validation
-  validate_ldap_adm_pwd = var.enable_ldap && var.ldap_server == "null" ? (length(var.ldap_admin_password) >= 8 && length(var.ldap_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_admin_password)) && can(regex("^.*[~@_+:].*$", var.ldap_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_admin_password)) : local.ldap_server_status
+  validate_ldap_adm_pwd = var.enable_ldap ? (length(var.ldap_admin_password) >= 8 && length(var.ldap_admin_password) <= 20 && can(regex("^(.*[0-9]){2}.*$", var.ldap_admin_password))) && can(regex("^(.*[A-Z]){1}.*$", var.ldap_admin_password)) && can(regex("^(.*[a-z]){1}.*$", var.ldap_admin_password)) && can(regex("^.*[~@_+:].*$", var.ldap_admin_password)) && can(regex("^[^!#$%^&*()=}{\\[\\]|\\\"';?.<,>-]+$", var.ldap_admin_password)) : local.ldap_server_status
   ldap_adm_password_msg = "Password that is used for LDAP admin.The password must contain at least 8 characters and at most 20 characters. For a strong password, at least three alphabetic characters are required, with at least one uppercase and one lowercase letter.  Two numbers, and at least one special character. Make sure that the password doesn't include the username."
   validate_ldap_adm_pwd_chk = regex(
     "^${local.ldap_adm_password_msg}$",

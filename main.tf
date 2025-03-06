@@ -405,10 +405,10 @@ locals {
   ldap_instance_key_pair             = var.enable_ldap ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
   scale_cloud_install_repo_url       = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name      = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_repo_tag       = "v2.6.0"
+  scale_cloud_install_repo_tag       = "v2.7.0"
   scale_cloud_infra_repo_url         = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name        = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag         = "ibmcloud_v2.6.0"
+  scale_cloud_infra_repo_tag         = "ibmcloud_v2.7.0"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -489,6 +489,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "enable_ldap": "${var.enable_ldap}",
     "ldap_basedns": "${var.enable_ldap ? var.ldap_basedns : "null"}",
     "ldap_server": "${var.enable_ldap && var.ldap_server != "null" ? var.ldap_server : "null"}",
+    "ldap_server_cert": "${var.enable_ldap && var.ldap_server != "null" ? replace(var.ldap_server_cert, "\n", "\\n") : "null"}",
     "ldap_admin_password": "${var.enable_ldap ? var.ldap_admin_password : "null"}",
     "ldap_user_name": "${var.enable_ldap && var.ldap_server == "null" ? var.ldap_user_name : "null"}",
     "ldap_user_password": "${var.enable_ldap && var.ldap_server == "null" ? var.ldap_user_password : "null"}",
