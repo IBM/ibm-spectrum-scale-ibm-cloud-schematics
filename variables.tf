@@ -294,7 +294,7 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 variable "compute_vsi_osimage_name" {
   type        = string
   default     = "hpcc-scale5211-rhel810"
-  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL7.9 and 8.8 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
+  description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.10 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
     condition     = trimspace(var.compute_vsi_osimage_name) != ""
@@ -305,7 +305,7 @@ variable "compute_vsi_osimage_name" {
 variable "storage_vsi_osimage_name" {
   type        = string
   default     = "hpcc-scale5211-rhel810"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.8 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.10 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
     condition     = trimspace(var.storage_vsi_osimage_name) != ""
@@ -366,7 +366,7 @@ variable "storage_bare_metal_server_profile" {
 variable "storage_bare_metal_osimage_name" {
   type        = string
   default     = "hpcc-scale5211-rhel810"
-  description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports only a RHEL 8.8 stock image."
+  description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.10 version."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
     error_message = "Specified input \"storage_bare_metal_osimage_name\" is not valid."
@@ -493,7 +493,7 @@ variable "total_client_cluster_instances" {
 variable "client_vsi_osimage_name" {
   type        = string
   default     = "ibm-redhat-8-10-minimal-amd64-2"
-  description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.8 version."
+  description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.10 version."
 }
 
 variable "client_vsi_profile" {
@@ -536,6 +536,13 @@ variable "ldap_server" {
   type        = string
   default     = "null"
   description = "Provide the IP address for the existing LDAP server. If no address is given, a new LDAP server will be created."
+}
+
+variable "ldap_server_cert" {
+  type        = string
+  sensitive   = true
+  default     = "null"
+  description = "Provide the LDAP server certificate if the ldap_server variable is not set to null. If the certificate is not provided or is invalid, the LDAP configuration may fail. For more information, refer to the instructions on [creating or obtaining the certificate](https://cloud.ibm.com/docs/storage-scale?topic=storage-scale-enable-openldap#create-configure-ldap-certificate)."
 }
 
 variable "ldap_admin_password" {
