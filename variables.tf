@@ -6,7 +6,7 @@ variable "TF_PARALLELISM" {
 
 variable "TF_VERSION" {
   type        = string
-  default     = "1.5"
+  default     = "1.9"
   description = "The version of the Terraform engine that's used in the Schematics workspace."
 }
 
@@ -139,7 +139,7 @@ variable "remote_cidr_blocks" {
 
 variable "bastion_osimage_name" {
   type        = string
-  default     = "ibm-ubuntu-24-04-6-minimal-amd64-1"
+  default     = "ibm-ubuntu-24-04-6-minimal-amd64-2"
   description = "Name of the image that will be used to provision the Bastion node for the Storage Scale cluster. Only Ubuntu stock image of any version available to the IBM Cloud account in the specific region are supported."
 }
 
@@ -164,7 +164,7 @@ variable "bastion_key_pair" {
 
 variable "bootstrap_osimage_name" {
   type        = string
-  default     = "hpcc-scale-bootstrap-v2-6-0"
+  default     = "hpcc-scale-bootstrap-v2-7-0"
   description = "Name of the custom image that you would like to use to create the Bootstrap node for the Storage Scale cluster. The solution supports only the default custom image that has been provided."
 }
 
@@ -293,7 +293,7 @@ variable "total_storage_cluster_instances" { # The validation from the variable 
 
 variable "compute_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5211-rhel810"
+  default     = "hpcc-scale5221-rhel810"
   description = "Name of the image that you would like to use to create the compute cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.10 versions that have the appropriate Storage Scale functionality. The supported custom images mapping for the compute nodes can be found [here](https://github.com/IBM/ibm-spectrum-scale-ibm-cloud-schematics/blob/main/image_map.tf#L15). If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images)to create your own custom image."
 
   validation {
@@ -304,7 +304,7 @@ variable "compute_vsi_osimage_name" {
 
 variable "storage_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale5211-rhel810"
+  default     = "hpcc-scale5221-rhel810"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the IBM Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.10 version and that have the appropriate Storage Scale functionality. If you'd like, you can follow the instructions for [Planning for custom images](https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images) create your own custom image."
 
   validation {
@@ -359,13 +359,19 @@ variable "storage_bare_metal_server_profile" {
   description = "Specify the bare metal server profile type name to be used to create the bare metal storage nodes. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui)."
   validation {
     condition     = can(regex("^[b|c|m]x[0-9]+d?-[a-z]+-[0-9]+x[0-9]+", var.storage_bare_metal_server_profile))
-    error_message = "Specified profile must be a valid IBM Cloud VPC GEN2 Instance Storage profile name [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
+    error_message = "Specified profile must be a valid IBM Cloud VPC GEN2 and GEN3 Instance Storage profile name [Learn more](https://cloud.ibm.com/docs/vpc?topic=vpc-profiles)."
   }
+}
+
+variable "tie_breaker_bare_metal_server_profile" {
+  type        = string
+  default     = null
+  description = "Specify the bare metal server profile type name to be used for creating the bare metal Tie breaker node. If no value is provided, the storage bare metal server profile will be used as the default. For more information, see [bare metal server profiles](https://cloud.ibm.com/docs/vpc?topic=vpc-bare-metal-servers-profile&interface=ui). [Tie Breaker Node](https://www.ibm.com/docs/en/storage-scale/5.2.2?topic=quorum-node-tiebreaker-disks)"
 }
 
 variable "storage_bare_metal_osimage_name" {
   type        = string
-  default     = "hpcc-scale5211-rhel810"
+  default     = "hpcc-scale5221-rhel810"
   description = "Name of the image that you would like to use to create the storage cluster nodes for the Storage Scale cluster. The solution supports both stock and custom images that use RHEL8.10 version."
   validation {
     condition     = trimspace(var.storage_bare_metal_osimage_name) != ""
@@ -399,8 +405,8 @@ variable "scale_encryption_admin_password" {
 
 variable "scale_encryption_vsi_osimage_name" {
   type        = string
-  default     = "hpcc-scale-gklm4202-v2-5-1"
-  description = "Specify the image name to create the GKLM server when 'scale_encryption_type' is set to 'gklm'. Only RHEL 8.8 stock images are supported."
+  default     = "hpcc-scale-gklm4202-v2-5-2"
+  description = "Specify the image name to create the GKLM server when 'scale_encryption_type' is set to 'gklm'. Only RHEL 8.10 stock images are supported."
 }
 
 variable "scale_encryption_vsi_profile" {
@@ -425,6 +431,14 @@ variable "scale_encryption_instance_key_pair" {
   type        = list(string)
   default     = null
   description = "Specify the name of the SSH key in your IBM Cloud account for connecting to the Scale Encryption keyserver nodes when scale_encryption_type is set to gklm. Ensure the SSH key is in the same resource group and region as the keyservers. Only one SSH key is supported for the keyserver nodes. If you do not have an SSH key in your IBM Cloud account, create one by using the [SSH keys](https://cloud.ibm.com/docs/vpc?topic=vpc-ssh-keys) instructions."
+}
+
+# Existing Key Protect Instance Details
+
+variable "key_protect_instance_id" {
+  type        = string
+  default     = null
+  description = "An existing Key Protect instance used for filesystem encryption"
 }
 
 variable "vpc_protocol_cluster_private_subnets_cidr_blocks" {
@@ -492,7 +506,7 @@ variable "total_client_cluster_instances" {
 
 variable "client_vsi_osimage_name" {
   type        = string
-  default     = "ibm-redhat-8-10-minimal-amd64-2"
+  default     = "ibm-redhat-8-10-minimal-amd64-4"
   description = "Name of the image that you would like to use to create the client cluster nodes for the IBM Storage Scale cluster. The solution supports only stock images that use RHEL8.10 version."
 }
 
@@ -579,7 +593,7 @@ variable "ldap_vsi_profile" {
 
 variable "ldap_vsi_osimage_name" {
   type        = string
-  default     = "ibm-ubuntu-22-04-3-minimal-amd64-1"
+  default     = "ibm-ubuntu-22-04-5-minimal-amd64-1"
   description = "Image name to be used for provisioning the LDAP instances. Note: Debian based OS are only supported for the LDAP feature."
 }
 
@@ -654,4 +668,48 @@ variable "afm_cos_config" {
     condition     = alltrue([for item in var.afm_cos_config : item.bucket_region != ""])
     error_message = "The \"bucket_region\" field must not be empty."
   }
+}
+
+# Existing Security Group Variables
+
+variable "enable_sg_validation" {
+  type        = bool
+  default     = true
+  description = "If enable_sg_validation is set to true, the deployment will confirm that the correct security groups are attached and to allow the appropriate rules. When set to false, no validation is performed, and the deployment proceeds without verifying the security groups."
+}
+
+variable "bastion_sg_name" {
+  type        = string
+  default     = null
+  description = "Provide the security group name to provision the bastion node. If set to null, the solution will automatically create the necessary security group and rules. If you choose to use an existing security group, ensure it has the appropriate rules configured for the bastion node to function properly."
+}
+
+variable "bootstrap_sg_name" {
+  type        = string
+  default     = null
+  description = "Provide the security group name to provision the bootstrap node. If set to null, the solution will automatically create the necessary security group and rules. If you choose to use an existing security group, ensure it has the appropriate rules configured for the bootstrap node to function properly."
+}
+
+variable "strg_sg_name" {
+  type        = string
+  default     = null
+  description = "Provide the security group name to provision the storage nodes. If set to null, the solution will automatically create the necessary security group and rules. If you choose to use an existing security group, ensure it has the appropriate rules configured for the storage nodes to function properly."
+}
+
+variable "comp_sg_name" {
+  type        = string
+  default     = null
+  description = "Provide the security group name to provision the compute nodes. If set to null, the solution will automatically create the necessary security group and rules. If you choose to use an existing security group, ensure it has the appropriate rules configured for the compute nodes to function properly."
+}
+
+variable "gklm_sg_name" {
+  type        = string
+  default     = null
+  description = "Provide the security group name to provision the gklm nodes. If set to null, the solution will automatically create the necessary security group and rules. If you choose to use an existing security group, ensure it has the appropriate rules configured for the gklm nodes to function properly."
+}
+
+variable "ldap_sg_name" {
+  type        = string
+  default     = null
+  description = "Provide the security group name to provision the ldap nodes. If set to null, the solution will automatically create the necessary security group and rules. If you choose to use an existing security group, ensure it has the appropriate rules configured for the ldap nodes to function properly."
 }
