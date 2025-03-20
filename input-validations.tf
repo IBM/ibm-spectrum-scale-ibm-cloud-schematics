@@ -161,7 +161,7 @@ locals {
 }
 
 locals {
-  validate_zone                  = var.storage_type == "persistent" ? contains(["us-south-1", "us-south-3", "eu-de-1", "eu-de-2", "jp-tok-2", "jp-tok-3", "ca-tor-1", "ca-tor-3" ], join(",", var.vpc_availability_zones)) : true
+  validate_zone                  = var.storage_type == "persistent" ? contains(["us-south-1", "us-south-3", "eu-de-1", "eu-de-2", "eu-de-3", "jp-tok-2", "jp-tok-3", "ca-tor-1", "ca-tor-3" ], join(",", var.vpc_availability_zones)) : true
   zone_msg                       = "The solution supports bare metal server creation in only given availability zones i.e. us-south-1, us-south-3, eu-de-1, eu-de-2, jp-tok-2, jp-tok-3, ca-tor-1 and ca-tor-3. To deploy persistent storage provide any one of the supported availability zones."
   validate_persistent_region_chk = regex("^${local.zone_msg}$", (local.validate_zone ? local.zone_msg : ""))
 }
@@ -191,6 +191,11 @@ data "ibm_is_instance_profile" "storage_vsi" {
 
 data "ibm_is_bare_metal_server_profile" "storage_bare_metal_server" {
   name  = var.storage_bare_metal_server_profile
+  count = var.storage_type == "persistent" ? 1 : 0
+}
+
+data "ibm_is_bare_metal_server_profile" "tie_breaker_bare_metal_server" {
+  name  = var.tie_breaker_bare_metal_server_profile == null ? var.storage_bare_metal_server_profile : var.tie_breaker_bare_metal_server_profile
   count = var.storage_type == "persistent" ? 1 : 0
 }
 
@@ -501,4 +506,48 @@ locals {
     "159.122.111.224/27",
     "161.156.37.160/27"
   ]
+}
+
+# Data Sources to get details of existing Security Group
+
+data "ibm_is_security_group" "bastion_security_group" {
+  count = var.bastion_sg_name != null ? 1 : 0
+  name  = var.bastion_sg_name
+}
+
+data "ibm_is_security_group" "bootstrap_security_group" {
+  count = var.bootstrap_sg_name != null ? 1 : 0
+  name  = var.bootstrap_sg_name
+}
+
+locals {
+  // Bastion security group validation
+  validate_bastion_sg     = var.enable_sg_validation ? anytrue([var.bootstrap_sg_name != null, var.strg_sg_name != null, var.comp_sg_name != null, var.gklm_sg_name != null, var.ldap_sg_name != null]) ? var.bastion_sg_name != null : true : true
+  bastion_sg_msg          = "The solution supports the option to use either all new or all existing security groups. The bastion_sg_name cannot be set to null when security group names are provided for any of the following security groups: bootstrap_sg_name, strg_sg_name, comp_sg_name, gklm_sg_name, or ldap_sg_name."
+  validate_bastion_sg_chk = regex("^${local.bastion_sg_msg}$", local.validate_bastion_sg ? local.bastion_sg_msg : "")
+
+  // Bootstrap security group validation
+  validate_bootstrap_sg     = var.enable_sg_validation ? anytrue([var.bastion_sg_name != null, var.strg_sg_name != null, var.comp_sg_name != null, var.gklm_sg_name != null, var.ldap_sg_name != null]) ? var.bootstrap_sg_name != null : true : true
+  bootstrap_sg_msg          = "The solution supports the option to use either all new or all existing security groups. The bootstrap_sg_name cannot be set to null when security group names are provided for any of the following security groups: bastion_sg_name, strg_sg_name, comp_sg_name, gklm_sg_name, or ldap_sg_name."
+  validate_bootstrap_sg_chk = regex("^${local.bootstrap_sg_msg}$", local.validate_bootstrap_sg ? local.bootstrap_sg_msg : "")
+
+  // Storage security group validation
+  validate_strg_sg     = var.enable_sg_validation ? anytrue([var.bastion_sg_name != null, var.bootstrap_sg_name != null, var.comp_sg_name != null, var.gklm_sg_name != null, var.ldap_sg_name != null]) ? var.strg_sg_name != null : true : true
+  strg_sg_msg          = "The solution supports the option to use either all new or all existing security groups. The strg_sg_name cannot be set to null when security group names are provided for any of the following security groups: bastion_sg_name, bootstrap_sg_name, comp_sg_name, gklm_sg_name, or ldap_sg_name."
+  validate_strg_sg_chk = regex("^${local.strg_sg_msg}$", local.validate_strg_sg ? local.strg_sg_msg : "")
+
+  // Compute security group validation
+  validate_comp_clnt_sg     = var.enable_sg_validation ? (anytrue([var.bastion_sg_name != null, var.bootstrap_sg_name != null, var.strg_sg_name != null, var.gklm_sg_name != null, var.ldap_sg_name != null]) && (var.total_compute_cluster_instances > 0 || var.total_client_cluster_instances > 0)) ? var.comp_sg_name != null : true : true
+  comp_clnt_sg_msg          = "The solution supports the option to use either all new or all existing security groups. The comp_sg_name cannot be set to null when security group names are provided for any of the following security groups: bastion_sg_name, bootstrap_sg_name, strg_sg_name, gklm_sg_name, or ldap_sg_name."
+  validate_comp_clnt_sg_chk = regex("^${local.comp_clnt_sg_msg}$", local.validate_comp_clnt_sg ? local.comp_clnt_sg_msg : "")
+
+  // GKLM security group validation
+  validate_gklm_sg     = var.enable_sg_validation ? (anytrue([var.bastion_sg_name != null, var.bootstrap_sg_name != null, var.strg_sg_name != null, var.comp_sg_name != null, var.ldap_sg_name != null]) && (var.scale_encryption_server_count > 0 && var.scale_encryption_type == "gklm")) ? var.gklm_sg_name != null : true : true
+  gklm_sg_msg          = "The solution supports the option to use either all new or all existing security groups. The gklm_sg_name cannot be set to null when security group names are provided for any of the following security groups: bastion_sg_name, bootstrap_sg_name, strg_sg_name, comp_sg_name, or ldap_sg_name."
+  validate_gklm_sg_chk = regex("^${local.gklm_sg_msg}$", local.validate_gklm_sg ? local.gklm_sg_msg : "")
+
+  // LDAP security group validation
+  validate_ldap_sg     = var.enable_sg_validation ? (anytrue([var.bastion_sg_name != null, var.bootstrap_sg_name != null, var.strg_sg_name != null, var.comp_sg_name != null, var.gklm_sg_name != null]) && var.enable_ldap == true) ? var.ldap_sg_name != null : true : true
+  ldap_sg_msg          = "The solution supports the option to use either all new or all existing security groups. The ldap_sg_name cannot be set to null when security group names are provided for any of the following security groups: bastion_sg_name, bootstrap_sg_name, strg_sg_name, comp_sg_name, or gklm_sg_name."
+  validate_ldap_sg_chk = regex("^${local.ldap_sg_msg}$", local.validate_ldap_sg ? local.ldap_sg_msg : "")
 }

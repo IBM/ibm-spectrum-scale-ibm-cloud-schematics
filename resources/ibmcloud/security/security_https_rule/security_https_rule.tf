@@ -10,12 +10,13 @@ terraform {
   }
 }
 
+variable "turn_on" {}
 variable "security_group_id" {}
 variable "sg_direction" {}
 variable "remote_ip_addr" {}
 
 resource "ibm_is_security_group_rule" "itself" {
-  count     = length(var.remote_ip_addr)
+  count     = tobool(var.turn_on) == true ? length(var.remote_ip_addr) : 0
   group     = var.security_group_id
   direction = var.sg_direction
   remote    = var.remote_ip_addr[count.index]

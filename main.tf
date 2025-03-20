@@ -242,7 +242,7 @@ module "custom_resolver_storage_subnet" { # While creating the custom resolver, 
 
 module "bastion_security_group" {
   source            = "./resources/ibmcloud/security/security_group"
-  turn_on           = true
+  turn_on           = var.bastion_sg_name == null ? true : false
   sec_group_name    = [format("%s-bastion-sg", var.resource_prefix)]
   vpc_id            = local.cluster_vpc_id
   resource_group_id = data.ibm_resource_group.itself.id
@@ -251,6 +251,7 @@ module "bastion_security_group" {
 
 module "bastion_sg_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_tcp_rule"
+  turn_on           = var.bastion_sg_name == null ? true : false
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
   remote_ip_addr    = var.remote_cidr_blocks
@@ -258,6 +259,7 @@ module "bastion_sg_tcp_rule" {
 
 module "schematics_ip_sg_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_tcp_rule"
+  turn_on           = var.bastion_sg_name == null ? true : false
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
   remote_ip_addr    = local.schematics_ip
@@ -265,6 +267,7 @@ module "schematics_ip_sg_tcp_rule" {
 
 module "bastion_https_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_https_rule"
+  turn_on           = var.bastion_sg_name == null ? true : false
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
   remote_ip_addr    = var.remote_cidr_blocks
@@ -272,6 +275,7 @@ module "bastion_https_tcp_rule" {
 
 module "bastion_sg_icmp_rule" {
   source            = "./resources/ibmcloud/security/security_icmp_rule"
+  turn_on           = var.bastion_sg_name == null ? true : false
   security_group_id = module.bastion_security_group.sec_group_id
   sg_direction      = "inbound"
   remote_ip_addr    = var.remote_cidr_blocks[0]
@@ -279,7 +283,7 @@ module "bastion_sg_icmp_rule" {
 
 module "bastion_sg_outbound_rule" {
   source             = "./resources/ibmcloud/security/security_allow_all"
-  turn_on            = true
+  turn_on            = var.bastion_sg_name == null ? true : false
   security_group_ids = module.bastion_security_group.sec_group_id
   sg_direction       = "outbound"
   remote_ip_addr     = "0.0.0.0/0"
@@ -298,7 +302,7 @@ module "bastion_vsi" {
   resource_grp_id      = data.ibm_resource_group.itself.id
   vsi_subnet_id        = local.storage_private_subnets
   comp_subnet_id       = local.enable_sec_interface == true ? local.compute_private_subnets : null
-  vsi_security_group   = [module.bastion_security_group.sec_group_id]
+  vsi_security_group   = local.existing_sg_bastion
   vsi_profile          = var.bastion_vsi_profile
   vsi_image_id         = data.ibm_is_image.bastion_image.id
   vsi_user_public_key  = data.ibm_is_ssh_key.bastion_ssh_key[*].id
@@ -317,7 +321,7 @@ module "bastion_attach_fip" {
 
 module "bootstrap_security_group" {
   source            = "./resources/ibmcloud/security/security_group"
-  turn_on           = true
+  turn_on           = var.bootstrap_sg_name == null ? true : false
   sec_group_name    = [format("%s-bootstrap-sg", var.resource_prefix)]
   vpc_id            = local.cluster_vpc_id
   resource_group_id = data.ibm_resource_group.itself.id
@@ -326,6 +330,7 @@ module "bootstrap_security_group" {
 
 module "bootstrap_sg_tcp_rule" {
   source            = "./resources/ibmcloud/security/security_tcp_rule"
+  turn_on           = var.bootstrap_sg_name == null ? true : false
   security_group_id = module.bootstrap_security_group.sec_group_id
   sg_direction      = "inbound"
   remote_ip_addr    = tolist([module.bastion_security_group.sec_group_id])
@@ -333,6 +338,7 @@ module "bootstrap_sg_tcp_rule" {
 
 module "bootstrap_sg_icmp_rule" {
   source            = "./resources/ibmcloud/security/security_icmp_rule"
+  turn_on           = var.bootstrap_sg_name == null ? true : false
   security_group_id = module.bootstrap_security_group.sec_group_id
   sg_direction      = "inbound"
   remote_ip_addr    = var.remote_cidr_blocks[0]
@@ -340,7 +346,7 @@ module "bootstrap_sg_icmp_rule" {
 
 module "bootstrap_sg_outbound_rule" {
   source             = "./resources/ibmcloud/security/security_allow_all"
-  turn_on            = true
+  turn_on            = var.bootstrap_sg_name == null ? true : false
   security_group_ids = module.bootstrap_security_group.sec_group_id
   sg_direction       = "outbound"
   remote_ip_addr     = "0.0.0.0/0"
@@ -390,6 +396,7 @@ locals {
   storage_node_count                 = var.total_storage_cluster_instances
   protocol_node_count                = var.total_protocol_cluster_instances
   client_node_count                  = var.total_client_cluster_instances
+  tie_breaker_bm_server_profile      = var.tie_breaker_bare_metal_server_profile == null ? var.storage_bare_metal_server_profile : var.tie_breaker_bare_metal_server_profile
   scale_ces_enabled                  = var.total_protocol_cluster_instances > 0 ? true : false
   create_client_cluster              = var.total_client_cluster_instances > 0 ? true : false
   filesets                           = jsonencode(var.filesets)
@@ -401,14 +408,23 @@ locals {
   client_cluster_key_pair            = jsonencode(var.client_cluster_key_pair)
   scale_encryption_instance_key_pair = local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? jsonencode(var.scale_encryption_instance_key_pair) : jsonencode([])
   encryption_node_count              = local.scale_encryption_enabled && var.scale_encryption_type == "gklm" ? var.scale_encryption_server_count : "0"
+  key_protect_instance_id            = jsonencode(var.key_protect_instance_id)
+  bastion_sg_id                      = var.bastion_sg_name != null ? jsonencode(data.ibm_is_security_group.bastion_security_group[0].id) : jsonencode(module.bastion_security_group.sec_group_id)
+  bootstrap_sg_id                    = var.bootstrap_sg_name != null ? jsonencode(data.ibm_is_security_group.bootstrap_security_group[0].id) : jsonencode(module.bootstrap_security_group.sec_group_id)
+  strg_sg_name                       = jsonencode(var.strg_sg_name)
+  comp_sg_name                       = jsonencode(var.comp_sg_name)
+  gklm_sg_name                       = jsonencode(var.gklm_sg_name)
+  ldap_sg_name                       = jsonencode(var.ldap_sg_name)
+  existing_sg_bastion                = var.bastion_sg_name != null ? [data.ibm_is_security_group.bastion_security_group[0].id] : [module.bastion_security_group.sec_group_id]
+  existing_sg_bootstrap              = var.bootstrap_sg_name != null ? [data.ibm_is_security_group.bootstrap_security_group[0].id] : [module.bootstrap_security_group.sec_group_id]
   enable_sec_interface               = local.scale_ces_enabled == false && data.ibm_is_instance_profile.compute_vsi.bandwidth[0].value >= 64000 ? true : false
   ldap_instance_key_pair             = var.enable_ldap ? jsonencode(var.ldap_instance_key_pair) : jsonencode([])
   scale_cloud_install_repo_url       = "https://github.com/IBM/ibm-spectrum-scale-cloud-install"
   scale_cloud_install_repo_name      = "ibm-spectrum-scale-cloud-install"
-  scale_cloud_install_repo_tag       = "v2.7.0"
+  scale_cloud_install_repo_tag       = "v2.8.0"
   scale_cloud_infra_repo_url         = "https://github.com/IBM/ibm-spectrum-scale-install-infra"
   scale_cloud_infra_repo_name        = "ibm-spectrum-scale-install-infra"
-  scale_cloud_infra_repo_tag         = "ibmcloud_v2.7.0"
+  scale_cloud_infra_repo_tag         = "ibmcloud_v2.8.0"
 }
 
 resource "local_sensitive_file" "prepare_scale_vsi_input" {
@@ -446,8 +462,8 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "filesystem_block_size": "${var.filesystem_block_size}",
     "spectrumscale_rpms_path": "${local.remote_gpfs_rpms_path}",
     "scale_ansible_repo_clone_path": "${local.remote_ansible_path}",
-    "deploy_controller_sec_group_id": "${module.bootstrap_security_group.sec_group_id}",
-    "bastion_security_group_id": "${module.bastion_security_group.sec_group_id}",
+    "deploy_controller_sec_group_id": ${local.bootstrap_sg_id},
+    "bastion_security_group_id": ${local.bastion_sg_id},
     "bastion_instance_public_ip": null,
     "bastion_instance_id": null,
     "bastion_ssh_private_key": null,
@@ -457,6 +473,7 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "storage_vsi_osimage_id": "${local.storage_image_id}",
     "storage_bare_metal_osimage_id": "${local.storage_bare_metal_image_id}",
     "storage_bare_metal_server_profile": "${var.storage_bare_metal_server_profile}",
+    "tie_breaker_bare_metal_server_profile": "${local.tie_breaker_bm_server_profile}",
     "storage_bare_metal_osimage_name": "${local.storage_bare_metal_osimage_name}",
     "storage_type": "${var.storage_type}",
     "scale_encryption_enabled": "${local.scale_encryption_enabled}",
@@ -501,7 +518,13 @@ resource "local_sensitive_file" "prepare_scale_vsi_input" {
     "bms_boot_drive_encryption": "${var.bms_boot_drive_encryption}",
     "total_afm_cluster_instances": ${local.total_afm_cluster_instances},
     "afm_vsi_profile": "${var.afm_server_profile}",
-    "afm_cos_config": ${local.afm_cos_config}
+    "afm_cos_config": ${local.afm_cos_config},
+    "enable_sg_validation": "${var.enable_sg_validation}",
+    "strg_sg_name": ${local.strg_sg_name},
+    "comp_sg_name": ${local.comp_sg_name},
+    "gklm_sg_name": ${local.gklm_sg_name},
+    "ldap_sg_name": ${local.ldap_sg_name},
+    "key_protect_instance_id": ${local.key_protect_instance_id}
 }    
 EOT
   filename = local.schematics_inputs_path
@@ -521,7 +544,7 @@ module "bootstrap_vsi" {
   vpc_zone             = var.vpc_availability_zones[0]
   resource_grp_id      = data.ibm_resource_group.itself.id
   vsi_subnet_id        = local.storage_private_subnets
-  vsi_security_group   = [module.bootstrap_security_group.sec_group_id]
+  vsi_security_group   = local.existing_sg_bootstrap
   vsi_profile          = var.bootstrap_vsi_profile
   vsi_image_id         = local.bootstrap_image_mapping_entry_found ? local.bootstrap_image_id : data.ibm_is_image.bootstrap_image[0].id
   vsi_user_public_key  = data.ibm_is_ssh_key.bastion_ssh_key[*].id
